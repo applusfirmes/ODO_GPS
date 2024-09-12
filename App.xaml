@@ -1,0 +1,9 @@
+﻿<Application x:Class="LCMS_ODO_GPS_GENERATOR.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:LCMS_ODO_GPS_GENERATOR"
+             StartupUri="MainWindow.xaml">
+    <Application.Resources>
+         
+    </Application.Resources>
+</Application>

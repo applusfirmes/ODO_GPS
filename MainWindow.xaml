@@ -1,0 +1,40 @@
+﻿<Window x:Class="LCMS_ODO_GPS_GENERATOR.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:LCMS_ODO_GPS_GENERATOR"
+        mc:Ignorable="d"        
+        Title="LCMS" Height="500" Width="750">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="23*"/>
+            <ColumnDefinition Width="352*"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="230" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <StackPanel Grid.Row="0" Margin="0,0,0,205" Grid.RowSpan="2" Grid.ColumnSpan="2">
+            <Label Margin="0 60 0 40" HorizontalAlignment="Center" FontSize="23" FontWeight="Bold" Content="ODO-GPS Generator"/>
+            <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Center">
+                <Button x:Name="Btn_Procesar" HorizontalAlignment="Center" Width="100" Margin="10"  Height="40" Content="Procesar" Click="Btn_Procesar_Click" FontWeight="Bold" FontSize="14">
+                </Button>
+                <Button x:Name="Btn_GenerarKML_Incidencias" HorizontalAlignment="Center" Width="180" Height="40" Content="Generar KML/Incidencias" Click="Btn_GenerarKML_Incidencias_Click" FontWeight="Bold" FontSize="14">
+                </Button>
+            </StackPanel>
+            <ProgressBar x:Name="ProgressBar" Height="20" Width="200" Margin="0 20 0 0" />
+            <ProgressBar x:Name="ProgressBarKmlIncidencias" IsIndeterminate="True" Height="20" Width="200" Margin="0 10 0 0" />
+
+        </StackPanel>
+
+        <DockPanel Margin="10,10,10,10" Grid.Row="1" LastChildFill="True" Grid.ColumnSpan="2">
+            <Label Content="Mensajes del sistema" FontWeight="Bold" FontSize="14" DockPanel.Dock="Top"></Label>
+            <TextBox x:Name="tbMensajesSistema" ScrollViewer.VerticalScrollBarVisibility="Auto" Height="auto" TextWrapping="Wrap" VerticalAlignment="Stretch" AcceptsReturn="True" />
+        </DockPanel>
+
+
+
+
+    </Grid>
+</Window>
