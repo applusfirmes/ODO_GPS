@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Xml;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.TextBox;
 using WForm = System.Windows.Forms;
 
 namespace LCMS_ODO_GPS_GENERATOR
@@ -40,8 +41,6 @@ namespace LCMS_ODO_GPS_GENERATOR
         public static string VERSION = "1.0.1";
         XmlElement xGPSCoorValido;   // Ultima Etiqueta GPSCoordinate del XML valida.
         string nombreArchivoValido;
-
-        public static ProgressBar progressBarSm;
 
         public MainWindow()
         {
@@ -114,11 +113,14 @@ namespace LCMS_ODO_GPS_GENERATOR
             KmlController kmlController = new KmlController();
             IncidenciaController incidenciaController = new IncidenciaController();
 
-            System.Windows.Forms.FolderBrowserDialog selCarpeta = new System.Windows.Forms.FolderBrowserDialog();
+            //System.Windows.Forms.FolderBrowserDialog selCarpeta = new System.Windows.Forms.FolderBrowserDialog();
+            //selCarpeta.ShowDialog();
 
-            selCarpeta.ShowDialog();
+            OpenFileDialog openFileDialog = new OpenFileDialog();
+            openFileDialog.Title = "Selecciona la ruta de los ficheros XML.";
 
-            if (!string.IsNullOrEmpty(selCarpeta.SelectedPath))
+            //if (!string.IsNullOrEmpty(selCarpeta.SelectedPath))
+            if (openFileDialog.ShowDialog() == true)
             {
 
                 Btn_GenerarKML_Incidencias.IsEnabled = false;
@@ -126,9 +128,17 @@ namespace LCMS_ODO_GPS_GENERATOR
 
                 Task task = Task.Run(() =>
                 {
-                    DirectoryInfo di = new DirectoryInfo(selCarpeta.SelectedPath);
-                    kmlController.leerArchivosXML(di.FullName);
-                    incidenciaController.leerArchivosXML(di.FullName);
+                    //DirectoryInfo di = new DirectoryInfo(selCarpeta.SelectedPath);
+                    DirectoryInfo di = new DirectoryInfo(System.IO.Path.GetDirectoryName(openFileDialog.FileName));
+
+                    //Añadimos nuevo @SM 16/09/2024
+                    if (di.Parent != null)
+                    {
+                        string carpeta = di.Parent.FullName;
+                        kmlController.leerArchivosXML(carpeta);
+                        incidenciaController.leerArchivosXML(carpeta);
+                    }
+                    
 
                     this.Dispatcher.Invoke(() =>
                     {

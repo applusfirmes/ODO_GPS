@@ -15,16 +15,24 @@
             <RowDefinition Height="230" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
-        <StackPanel Grid.Row="0" Margin="0,0,0,205" Grid.RowSpan="2" Grid.ColumnSpan="2">
-            <Label Margin="0 60 0 40" HorizontalAlignment="Center" FontSize="23" FontWeight="Bold" Content="ODO-GPS Generator"/>
+        <StackPanel  Grid.Row="0" Margin="0,0,0,205" Grid.RowSpan="2" Grid.ColumnSpan="2">
+            <Label Margin="0 10 0 10" HorizontalAlignment="Center" FontSize="23" FontWeight="Bold" Content="ODO-GPS Generator"/>
             <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Center">
-                <Button x:Name="Btn_Procesar" HorizontalAlignment="Center" Width="100" Margin="10"  Height="40" Content="Procesar" Click="Btn_Procesar_Click" FontWeight="Bold" FontSize="14">
+                <Button x:Name="Btn_Procesar" VerticalAlignment="Top" HorizontalAlignment="Center" Width="100" Margin="10"  Height="40" Content="Procesar" Click="Btn_Procesar_Click" FontWeight="Bold" FontSize="14">
                 </Button>
-                <Button x:Name="Btn_GenerarKML_Incidencias" HorizontalAlignment="Center" Width="180" Height="40" Content="Generar KML/Incidencias" Click="Btn_GenerarKML_Incidencias_Click" FontWeight="Bold" FontSize="14">
-                </Button>
+                <StackPanel HorizontalAlignment="Center" Width="250" Orientation="Vertical">
+                    <Button x:Name="Btn_GenerarKML_Incidencias" HorizontalAlignment="Center" Margin="0 10 0 5" Width="180" Height="40" Content="Generar KML/Incidencias" Click="Btn_GenerarKML_Incidencias_Click" FontWeight="Bold" FontSize="14">
+                    </Button>
+                    <Label HorizontalAlignment="Center" FontSize="10" FontWeight="Bold" Content="Al seleccionar fichero, el programa"/>
+                    <Label HorizontalAlignment="Center" FontSize="10" FontWeight="Bold" Content="recogerá la carpeta de una jornada (aaaa-mm-dd)"/>
+                    <Label HorizontalAlignment="Center" FontSize="10" FontWeight="Bold" Content="2024-08-05\1\Archivo1.xml"/>
+                </StackPanel>
+
             </StackPanel>
-            <ProgressBar x:Name="ProgressBar" Height="20" Width="200" Margin="0 20 0 0" />
-            <ProgressBar x:Name="ProgressBarKmlIncidencias" IsIndeterminate="True" Height="20" Width="200" Margin="0 10 0 0" />
+
+            <ProgressBar x:Name="ProgressBar" Height="20" Width="200" Margin="0 10 40 5" />
+            <ProgressBar x:Name="ProgressBarKmlIncidencias" IsIndeterminate="True" Height="20" Width="200" Margin="0 0 40 0" />
+
 
         </StackPanel>
 
