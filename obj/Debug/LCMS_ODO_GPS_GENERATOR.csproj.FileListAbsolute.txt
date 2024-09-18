@@ -53,3 +53,21 @@ C:\SMiranda\APPS\GEN_GPS_ODO_PARA_LCMS\LCMS_ODO_GPS_GENERATOR\bin\Debug\System.M
 C:\SMiranda\APPS\GEN_GPS_ODO_PARA_LCMS\LCMS_ODO_GPS_GENERATOR\bin\Debug\System.Numerics.Vectors.xml
 C:\SMiranda\APPS\GEN_GPS_ODO_PARA_LCMS\LCMS_ODO_GPS_GENERATOR\bin\Debug\System.Runtime.CompilerServices.Unsafe.xml
 C:\SMiranda\APPS\GEN_GPS_ODO_PARA_LCMS\LCMS_ODO_GPS_GENERATOR\obj\Debug\LCMS_ODO.F39ED6E9.Up2Date
+A:\SMiranda APPlus\Programas\ODO_GPS\bin\Debug\LCMS_ODO_GPS_GENERATOR.exe.config
+A:\SMiranda APPlus\Programas\ODO_GPS\bin\Debug\LCMS_ODO_GPS_GENERATOR.exe
+A:\SMiranda APPlus\Programas\ODO_GPS\bin\Debug\LCMS_ODO_GPS_GENERATOR.pdb
+A:\SMiranda APPlus\Programas\ODO_GPS\bin\Debug\System.Buffers.dll
+A:\SMiranda APPlus\Programas\ODO_GPS\bin\Debug\System.Numerics.Vectors.dll
+A:\SMiranda APPlus\Programas\ODO_GPS\obj\Debug\LCMS_ODO_GPS_GENERATOR.csproj.AssemblyReference.cache
+A:\SMiranda APPlus\Programas\ODO_GPS\obj\Debug\MainWindow.g.cs
+A:\SMiranda APPlus\Programas\ODO_GPS\obj\Debug\App.g.cs
+A:\SMiranda APPlus\Programas\ODO_GPS\obj\Debug\LCMS_ODO_GPS_GENERATOR_MarkupCompile.cache
+A:\SMiranda APPlus\Programas\ODO_GPS\obj\Debug\LCMS_ODO_GPS_GENERATOR_MarkupCompile.lref
+A:\SMiranda APPlus\Programas\ODO_GPS\obj\Debug\MainWindow.baml
+A:\SMiranda APPlus\Programas\ODO_GPS\obj\Debug\LCMS_ODO_GPS_GENERATOR.g.resources
+A:\SMiranda APPlus\Programas\ODO_GPS\obj\Debug\LCMS_ODO_GPS_GENERATOR.Properties.Resources.resources
+A:\SMiranda APPlus\Programas\ODO_GPS\obj\Debug\LCMS_ODO_GPS_GENERATOR.csproj.GenerateResource.cache
+A:\SMiranda APPlus\Programas\ODO_GPS\obj\Debug\LCMS_ODO_GPS_GENERATOR.csproj.CoreCompileInputs.cache
+A:\SMiranda APPlus\Programas\ODO_GPS\obj\Debug\LCMS_ODO.F39ED6E9.Up2Date
+A:\SMiranda APPlus\Programas\ODO_GPS\obj\Debug\LCMS_ODO_GPS_GENERATOR.exe
+A:\SMiranda APPlus\Programas\ODO_GPS\obj\Debug\LCMS_ODO_GPS_GENERATOR.pdb
