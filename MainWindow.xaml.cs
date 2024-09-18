@@ -22,6 +22,10 @@ namespace LCMS_ODO_GPS_GENERATOR
     // - Compilamos versión, añadimos boton para generar archivos KML y CSVs de incidencias. Creamos 2 clases nuevas IncidenciaController y KmlController
     //   añadimos nuevo progressabar. 
 
+    // 17/09/2024 - VERSION 1.0.2
+    // - Añadimos boton para generar archivos IRI. Creamos clases nueva, Roughness
+
+
 
 
     /// <summary>
@@ -38,7 +42,7 @@ namespace LCMS_ODO_GPS_GENERATOR
         List<string> List_odoFinal;
         List<DatosGPS> List_DatosGPS;
         XmlDocument xmldoc;
-        public static string VERSION = "1.0.1";
+        public static string VERSION = "1.0.2";
         XmlElement xGPSCoorValido;   // Ultima Etiqueta GPSCoordinate del XML valida.
         string nombreArchivoValido;
 
@@ -47,7 +51,7 @@ namespace LCMS_ODO_GPS_GENERATOR
             InitializeComponent();
             this.Title = "LCMS - Version " + VERSION;
             ProgressBar.Visibility = Visibility.Hidden;
-            ProgressBarKmlIncidencias.Visibility = Visibility.Hidden;
+            ProgressBarSm.Visibility = Visibility.Hidden;
         }
 
         private void Btn_Procesar_Click(object sender, RoutedEventArgs e)
@@ -90,9 +94,9 @@ namespace LCMS_ODO_GPS_GENERATOR
                 Task task = Task.Run(() =>
                 {
                     procesarArchivos(archivos);
-                    
+
                     NombreDirectorioSave = Seleccionardirectorio();
-                   
+
                     CrearArchivoGPS();
                     CrearArchivoODO();
 
@@ -104,7 +108,7 @@ namespace LCMS_ODO_GPS_GENERATOR
                         ProgressBar.Visibility = Visibility.Hidden;
 
                     });
-                });   
+                });
             }
         }
 
@@ -124,7 +128,7 @@ namespace LCMS_ODO_GPS_GENERATOR
             {
 
                 Btn_GenerarKML_Incidencias.IsEnabled = false;
-                ProgressBarKmlIncidencias.Visibility = Visibility.Visible;
+                ProgressBarSm.Visibility = Visibility.Visible;
 
                 Task task = Task.Run(() =>
                 {
@@ -138,39 +142,49 @@ namespace LCMS_ODO_GPS_GENERATOR
                         kmlController.leerArchivosXML(carpeta);
                         incidenciaController.leerArchivosXML(carpeta);
                     }
-                    
-
                     this.Dispatcher.Invoke(() =>
                     {
                         Btn_GenerarKML_Incidencias.IsEnabled = true;
-                        ProgressBarKmlIncidencias.Visibility = Visibility.Hidden;
+                        ProgressBarSm.Visibility = Visibility.Hidden;
 
                     });
-                    MessageBox.Show("Operación realizada correctamente.");
+                    MessageBox.Show("Operación realizada correctamente.", "Finalizado");
                 });
-
             }
         }
 
-        //private void Btn_GenerarIncidencias_Click(object sender, RoutedEventArgs e)
-        //{
-        //    //@SM , completamos diccionario
-        //    IncidenciaController incidenciaController = new IncidenciaController();
 
-        //    System.Windows.Forms.FolderBrowserDialog selCarpeta = new System.Windows.Forms.FolderBrowserDialog();
+        private void Btn_Roughness_Click(object sender, RoutedEventArgs e)
+        {
+            OpenFileDialog openFileDialog = new OpenFileDialog();
+            openFileDialog.Title = "Selecciona la ruta de los ficheros XML.";
+            Roughness roughness = new Roughness();
 
-        //    selCarpeta.ShowDialog();
+            if (openFileDialog.ShowDialog() == true)
+            {
+                Btn_Roughness.IsEnabled = false;
+                ProgressBarSm.Visibility = Visibility.Visible;
 
-        //    if (!string.IsNullOrEmpty(selCarpeta.SelectedPath))
-        //    {
-        //        DirectoryInfo di = new DirectoryInfo(selCarpeta.SelectedPath);
-        //        incidenciaController.leerArchivosXML(di.FullName);
-        //    }
-        //}
-        
+                Task task = Task.Run(() =>
+                {
+                    DirectoryInfo di = new DirectoryInfo(System.IO.Path.GetDirectoryName(openFileDialog.FileName));
 
+                    //Añadimos nuevo @SM 16/09/2024
+                    if (di.Parent != null)
+                    {
+                        string carpeta = di.Parent.FullName;
+                        roughness.recogerSubCarpetas(carpeta);
+                    }
+                    this.Dispatcher.Invoke(() =>
+                    {
+                        Btn_Roughness.IsEnabled = true;
+                        ProgressBarSm.Visibility = Visibility.Hidden;
 
-
+                    });
+                    MessageBox.Show("Operación realizada correctamente.", "Finalizado");
+                });
+            }
+        }
         private void procesarArchivos(FileInfo[] archivos)
         {
             List<string> lMensajes;
@@ -187,7 +201,8 @@ namespace LCMS_ODO_GPS_GENERATOR
                 {
                     foreach (string mens in lMensajes)
                     {
-                        tbMensajesSistema.Dispatcher.Invoke(() => {
+                        tbMensajesSistema.Dispatcher.Invoke(() =>
+                        {
                             tbMensajesSistema.Text += mens + Environment.NewLine;
                         });
                     }
@@ -195,7 +210,8 @@ namespace LCMS_ODO_GPS_GENERATOR
 
                 almacenaTìemposODO();
 
-                ProgressBar.Dispatcher.Invoke(() => {
+                ProgressBar.Dispatcher.Invoke(() =>
+                {
                     ProgressBar.Value = i + 1;
                 });
             }
@@ -209,12 +225,13 @@ namespace LCMS_ODO_GPS_GENERATOR
             }
             else
             {
-                
+
                 //MessageBoxResult resultado = MessageBox.Show(this,"No hay ningún dato GPS, desea crear virtualmente datos virtuales para estos valores", "Faltan datos GPS", MessageBoxButton.YesNo, MessageBoxImage.Question);
-                
+
                 if (true)
                 {
-                    tbMensajesSistema.Dispatcher.Invoke(() => {
+                    tbMensajesSistema.Dispatcher.Invoke(() =>
+                    {
                         tbMensajesSistema.Text += "No existen coordenadas GPS válidas en los archivos XMLs. Se han creado coordenadas virtuales inválidas." + Environment.NewLine;
                     });
 
@@ -237,7 +254,7 @@ namespace LCMS_ODO_GPS_GENERATOR
 
                     // Redondeos a modulo 200 milisegunds para INI
 
-                    dtIni.hora = dtIni.hora - new TimeSpan (0, horasRetraso, 0,0, redondeoIni);
+                    dtIni.hora = dtIni.hora - new TimeSpan(0, horasRetraso, 0, 0, redondeoIni);
                     dtFin.hora = dtFin.hora - new TimeSpan(0, horasRetraso, 0, 0, redondeoFin);
 
                     List_DatosGPS.Add(new DatosGPS("0010.0000000", "00010.0000000", "0.00000000", dtIni, "0", "1", "W", "N", false));
@@ -249,7 +266,7 @@ namespace LCMS_ODO_GPS_GENERATOR
             }
         }
 
-        private bool GenerarGPS (string _nombreArchivo, out List<string> _lMensajes, bool _bPrimero)
+        private bool GenerarGPS(string _nombreArchivo, out List<string> _lMensajes, bool _bPrimero)
         {
             bool bError = false;
 
@@ -291,7 +308,7 @@ namespace LCMS_ODO_GPS_GENERATOR
                     insertarNodoGPS(xG3);
                 }
             }
-            
+
 
             return bError;
         }
@@ -412,7 +429,7 @@ namespace LCMS_ODO_GPS_GENERATOR
             List<DatosGPS> lGPS_Aux = new List<DatosGPS>();
 
             TimeSpan intervalo = TimeSpan.FromMilliseconds(200);
-            
+
             // recorro todos los datos GPS que tengo. Introduzco 1 dato repetido para luego interpolar por cada 200ms que exista entre cada posicion de List_DatosGPS
             for (int i = 0; i < List_DatosGPS.Count - 1; i++)
             {
@@ -428,7 +445,7 @@ namespace LCMS_ODO_GPS_GENERATOR
 
                 List_DatosGPS[i].Time.hora += intervalo;
 
-                while ((i < List_DatosGPS.Count - 1) && (List_DatosGPS[i].Time.hora < List_DatosGPS[i+1].Time.hora))
+                while ((i < List_DatosGPS.Count - 1) && (List_DatosGPS[i].Time.hora < List_DatosGPS[i + 1].Time.hora))
                 {
                     lGPS_Aux.Add(new DatosGPS(List_DatosGPS[i]));
                     lGPS_Aux.Last().duplicado = true;
@@ -472,7 +489,7 @@ namespace LCMS_ODO_GPS_GENERATOR
                 {
                     bProcesandoInterpolacion = true;
                 }
-            }    
+            }
         }
 
         /// <summary>
@@ -496,9 +513,9 @@ namespace LCMS_ODO_GPS_GENERATOR
             //TimeSpan tSpan2 = new TimeSpan(0, int.Parse(fecha2[0].Substring(0, 2)), int.Parse(fecha2[0].Substring(2, 2)), int.Parse(fecha2[0].Substring(4, 2)), int.Parse(fecha2[1]) * 10);
 
             TimeSpan difTotal = List_DatosGPS[_indFinal].Time.hora - List_DatosGPS[_indInicio].Time.hora;
-            
+
             // estos son los incrementales a utilizar por paso
-            TimeSpan difPasoTiempo = new TimeSpan (difTotal.Ticks / numeroPasos);
+            TimeSpan difPasoTiempo = new TimeSpan(difTotal.Ticks / numeroPasos);
             double difPasoLong = (long2 - long1) / numeroPasos;
             double difPasoLat = (lat2 - lat1) / numeroPasos;
 
@@ -509,11 +526,11 @@ namespace LCMS_ODO_GPS_GENERATOR
                 // Calculo de las interpolaciones
                 double longDato = long1 + difPasoLong * contadorAvance;
                 double latDato = lat1 + difPasoLat * contadorAvance;
-                
+
                 // Añadimos los datos
                 List_DatosGPS[i].Longitude = longDato.ToString("00000.0000000", CultureInfo.InvariantCulture);
                 List_DatosGPS[i].Latitude = latDato.ToString("0000.0000000", CultureInfo.InvariantCulture);
-                List_DatosGPS[i].Time = new DateAndTime( new TimeSpan(List_DatosGPS[_indInicio].Time.hora.Ticks + (difPasoTiempo.Ticks * contadorAvance)));
+                List_DatosGPS[i].Time = new DateAndTime(new TimeSpan(List_DatosGPS[_indInicio].Time.hora.Ticks + (difPasoTiempo.Ticks * contadorAvance)));
 
                 //TimeSpan tSpanDato = new TimeSpan (List_DatosGPS[_indInicio].Time.hora.Ticks + (difPasoTiempo.Ticks * contadorAvance));
                 //List_DatosGPS[i].Time = tSpanDato.ToString("hhmmss") + "." + (tSpanDato.Milliseconds / 10).ToString("00");
@@ -572,7 +589,7 @@ namespace LCMS_ODO_GPS_GENERATOR
         /// </summary>
         /// <param name="xmlGPSInformation">etiqueta GPSInformation</param>
         /// <returns>una etiqueta GPSCoordinate</returns>
-        private XmlElement dameCoordenada (XmlElement _xmlLcmsAnalyserResults, string _nombreArchivo, out List<string> _lMensajes)
+        private XmlElement dameCoordenada(XmlElement _xmlLcmsAnalyserResults, string _nombreArchivo, out List<string> _lMensajes)
         {
             _lMensajes = new List<string>();
 
@@ -602,7 +619,7 @@ namespace LCMS_ODO_GPS_GENERATOR
 
                     bool bSalir = false;
 
-                    
+
                     for (int i = xNuevoGPSCoor.Count - 1; i >= 0; i--)
                     {
                         if (bSalir)
@@ -646,7 +663,7 @@ namespace LCMS_ODO_GPS_GENERATOR
                     }
                 }
             }
-            
+
             return xGPSCoor;
         }
 
@@ -655,13 +672,13 @@ namespace LCMS_ODO_GPS_GENERATOR
         /// </summary>
         /// <param name="xmlGPSInformation">etiqueta GPSInformation</param>
         /// <returns>Lista de coordenadas GPSCoordinate validas</returns>
-        private List<XmlElement> dameCoordenadas (XmlElement _xmlLcmsAnalyserResults, string _nombreArchivo, out List<string> _lMensajes)
+        private List<XmlElement> dameCoordenadas(XmlElement _xmlLcmsAnalyserResults, string _nombreArchivo, out List<string> _lMensajes)
         {
             _lMensajes = new List<string>();
 
             XmlNodeList xGPSInformation = _xmlLcmsAnalyserResults.GetElementsByTagName("GPSInformation");
             List<XmlElement> xGPSCoors = new List<XmlElement>();  // El valor de salida
-            
+
             if (xGPSInformation == null || xGPSInformation.Count == 0)  // no existe la etiqueta, cojo la del anterior archivo valido
             {
                 if (xGPSCoorValido == null) // si no habia etiqueta valida anterior es un fallo
@@ -695,7 +712,7 @@ namespace LCMS_ODO_GPS_GENERATOR
                                     nombreArchivoValido = _nombreArchivo;
                                     xGPSCoorValido = coord;
 
-                                    xGPSCoors.Add (coord);
+                                    xGPSCoors.Add(coord);
                                 }
                             }
                         }
@@ -714,7 +731,7 @@ namespace LCMS_ODO_GPS_GENERATOR
                     {
                         _lMensajes.Add("WARNING en " + _nombreArchivo + " : No existe la etiqueta GPSCoordinate. Se procesa con el dato del archivo " + nombreArchivoValido);
 
-                        xGPSCoors.Add (xGPSCoorValido);
+                        xGPSCoors.Add(xGPSCoorValido);
                     }
                 }
             }
@@ -728,15 +745,15 @@ namespace LCMS_ODO_GPS_GENERATOR
         /// 
         /// <param name="coordDecimal">coordenada geometrica decimal</param>
         /// <returns>Array con dos doubles. El primero con los grados enteros de la entrada, el segundo con el resto expresado en minutos</returns>
-        private double [] getCoorGradosMin(double coordDecimal)
+        private double[] getCoorGradosMin(double coordDecimal)
         {
-            double[] coorGradosMin = new double [2];
+            double[] coorGradosMin = new double[2];
 
             double parteEntera = Math.Truncate(coordDecimal);
-            
+
             coorGradosMin[0] = parteEntera;
             coorGradosMin[1] = (coordDecimal - parteEntera) * 60.0;
-                        
+
             return coorGradosMin;
         }
 
@@ -747,7 +764,7 @@ namespace LCMS_ODO_GPS_GENERATOR
         /// <returns>Array con dos doubles. El primero con los grados enteros de la entrada, el segundo con el resto expresado en minutos</returns>
         private double[] getCoorGradosMin(string strCoordDecimal)
         {
-            return getCoorGradosMin(Convert.ToDouble(strCoordDecimal,CultureInfo.InvariantCulture));
+            return getCoorGradosMin(Convert.ToDouble(strCoordDecimal, CultureInfo.InvariantCulture));
         }
 
         /// <summary>
@@ -780,14 +797,14 @@ namespace LCMS_ODO_GPS_GENERATOR
 
             foreach (XmlElement nodo in xDateAndTime)
             {
-                List_odo.Add(new DateAndTime (nodo.InnerText));
+                List_odo.Add(new DateAndTime(nodo.InnerText));
             }
         }
 
         /// <summary>
         /// Se procesan todos los tiempos introduciendo 9 registros interpolados en el tiempo
         /// </summary>
-        private void procesaTiemposOdo ()
+        private void procesaTiemposOdo()
         {
             List_odoFinal = new List<string>();
 
@@ -826,7 +843,7 @@ namespace LCMS_ODO_GPS_GENERATOR
             // Duplico el primer registro porque se usa para la sincronización de archivos. En el GID este primer registro del Odometro no se exporta y es solo para la sincronizacion
             List_odoFinal.Insert(0, List_odoFinal[0]);
         }
-        
+
         /// <summary>
         /// Crea el archivo GPS con las coordenadas
         /// Ultima modificación. Añado un registro por cada 200ms. Si dispongo de el en la lista me lo invento interpolando entre los que tengo.
@@ -890,8 +907,8 @@ namespace LCMS_ODO_GPS_GENERATOR
 
         private void CrearArchivoODO()
         {
-                       
-            String NombreArchivo = NombreDirectorioSave +"_ODO.trac";
+
+            String NombreArchivo = NombreDirectorioSave + "_ODO.trac";
             //Console.WriteLine(NombreArchivo);
 
             using (StreamWriter file = new StreamWriter(NombreArchivo, false, Encoding.GetEncoding("iso-8859-1")))
@@ -903,7 +920,8 @@ namespace LCMS_ODO_GPS_GENERATOR
             }
         }
 
-        private String Seleccionardirectorio() {
+        private String Seleccionardirectorio()
+        {
 
             string auxFecha = List_odoFinal.ElementAt(0);
             if (auxFecha.Contains("*"))

@@ -21,45 +21,9 @@ namespace LCMS_ODO_GPS_GENERATOR
         public double longitude;
 
     }
-    public struct estilo
-    {
-        public string fontName;
-        public int fontSize;
-        public bool bold;
-        public XLColor colorContenido;
-
-        public XLBorderStyleValues borde;
-        public XLColor bordeColor;
-
-        public XLBorderStyleValues bordeInterno;
-        public XLColor bordeColorInterno;
-
-        public void aplicarAlEstilo(IXLStyle _estilo)
-        {
-            _estilo.Font.FontSize = fontSize;
-            _estilo.Font.Bold = bold;
-            _estilo.Font.FontColor = colorContenido;
-            _estilo.Font.FontName = fontName;
-
-            _estilo.Border.TopBorder = _estilo.Border.BottomBorder = _estilo.Border.RightBorder = _estilo.Border.LeftBorder = borde;
-            _estilo.Border.TopBorderColor = _estilo.Border.BottomBorderColor = _estilo.Border.RightBorderColor = _estilo.Border.LeftBorderColor = bordeColor;
-
-            _estilo.Border.OutsideBorder = bordeInterno;
-            _estilo.Border.OutsideBorderColor = bordeColorInterno;
-
-            _estilo.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-            _estilo.Alignment.Vertical = XLAlignmentVerticalValues.Center;
-        }
-    }
 
     internal class IncidenciaController
     {
-        public Dictionary<int, estilo> dicEstilos = new Dictionary<int, estilo>();
-        public static int TITULO1 = 1;
-        public static int TITULO2 = 2;
-        public static int CABECERA = 3;
-        public static int DATOSTABLA = 4;
-        public static int RESULTADOS = 5;
 
         public IncidenciaController() { }
         public List<Incidencia> listaIncidencias = new List<Incidencia>();
@@ -70,6 +34,7 @@ namespace LCMS_ODO_GPS_GENERATOR
         {
             try
             {
+                //Recojo todas las subcarpetas
                 string[] subcarpetas = Directory.GetDirectories(ruta, "*", SearchOption.AllDirectories);
                 DirectoryInfo dir = new DirectoryInfo(ruta + "\\ArchivosIncidencias");
                 dir.Create();
