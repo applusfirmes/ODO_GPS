@@ -123,7 +123,7 @@ namespace LCMS_ODO_GPS_GENERATOR
             {
                 string nomCarpMod = modificarNomCarp(nombreCarpeta);
                 string nombreArchivo = rutaDestinoCarpetaArchivos + "\\" + "LCMS" + fecha + nomCarpMod + ".dist.pro.txt";
-
+                double distancia = 0.0;
                 using (StreamWriter escritor = new StreamWriter(nombreArchivo))
                 {
                     //Headers:
@@ -138,11 +138,13 @@ namespace LCMS_ODO_GPS_GENERATOR
                     escritor.WriteLine("Distance [m], Laser 1 [mm], Laser 2 [mm]");
 
                     int cont = 0;
-                    
+
                     while (listaValoresErdRight.Count > cont)
                     {
-                        escritor.WriteLine(valorASumar.ToString().Replace(",", ".") + ", " + listaValoresErdRight[cont].ToString("F6").Replace(",", ".") + ", " + listaValoresErdLeft[cont].ToString("F6").Replace(",", "."));
-                        valorASumar += valorASumar;
+                        double valorErdRight = listaValoresErdRight[cont] * 1000;
+                        double valorErdLeft = listaValoresErdLeft[cont] * 1000;
+                        escritor.WriteLine(distancia.ToString().Replace(",", ".") + ", " + valorErdRight.ToString("F6").Replace(",", ".") + ", " + valorErdLeft.ToString("F6").Replace(",", "."));
+                        distancia += valorASumar;
                         cont++;
                     }
                 }
@@ -187,6 +189,7 @@ namespace LCMS_ODO_GPS_GENERATOR
                     string[] datosSegundaFila = linea.Split(',');
                     int longitud = datosSegundaFila.Length;
                     valorASumar = Convert.ToDouble(datosSegundaFila[longitud - 3], CultureInfo.InvariantCulture);
+                    segundaFila = false;
                 }
 
                 // Si estamos después de "END", intentamos parsear los valores
@@ -236,7 +239,7 @@ namespace LCMS_ODO_GPS_GENERATOR
                     double distancia = 0; //representada en metros, va de 10 en 10
                     while (listaLongitud.Count > cont)
                     {
-                        escritor.WriteLine(distancia + ", , " + listaLatitud[cont].ToString().Replace(",", ".") + ", " + listaLatitud[cont].ToString().Replace(",", ".") + ", , , , , , , ,");
+                        escritor.WriteLine(distancia + ", 0.0, " + listaLatitud[cont].ToString().Replace(",", ".") + ", " + listaLongitud[cont].ToString().Replace(",", ".") + ", , , 0.0, 0, 0, 0.0, 0,");
                         distancia += 10;
                         cont++;
                     }
