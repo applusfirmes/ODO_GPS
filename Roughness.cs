@@ -3,6 +3,8 @@ using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.EMMA;
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Wordprocessing;
+using LCMS_ODO_GPS_GENERATOR.Objetos;
+using LCMS_ODO_GPS_GENERATOR.Vistas;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -14,6 +16,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Xml;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.TaskbarClock;
+using Path = System.IO.Path;
 
 namespace LCMS_ODO_GPS_GENERATOR
 {
@@ -36,28 +39,74 @@ namespace LCMS_ODO_GPS_GENERATOR
 
         public string fecha = "";
 
+        public void procesarCarpetasConfiguradas(string ruta, List<CarpetaConf> lista)
+        {
+            //Creamos carpeta donde almacenaremos todos los archivos Iri que generemos
+            DirectoryInfo dir = new DirectoryInfo(ruta + "\\Archivos");
+            dir.Create();
+
+            foreach (CarpetaConf carp in lista)
+            {
+                //Le pasamos el objeto Carpetaconf, que contiene la ruta para que procese los ficheros que contiene
+                procesarArchivosSubcarpeta(carp, dir.FullName);
+
+                //Antes de empezar a escribir el siguiente fichero referente a la carpeta siguiente, reiniciamos datos
+                limpiarListasYFecha();
+            }
+        }
 
         public void recogerSubCarpetas(string ruta)
         {
             try
             {
+                var listaActualizada = new List<CarpetaConf>();
+
                 //Recojo todas las subcarpetas
                 string[] subcarpetas = Directory.GetDirectories(ruta, "*", SearchOption.AllDirectories);
+
+                //Genero Grid con carpetas
+                List<CarpetaConf> listaCarpetasConf = new List<CarpetaConf>();
+
+                foreach (string subcarpeta in subcarpetas)
+                {
+                    string nombreCarpeta = Path.GetFileName(subcarpeta);
+                    CarpetaConf carpetaConf = new CarpetaConf(nombreCarpeta, subcarpeta);
+
+                    listaCarpetasConf.Add(carpetaConf);
+                }
+
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    var ventana = new GridCarpetas(listaCarpetasConf);
+                    ventana.ShowDialog();
+
+                });
+
+
 
                 //Creamos carpeta donde almacenaremos todos los archivos Iri que generemos
                 DirectoryInfo dir = new DirectoryInfo(ruta + "\\Archivos");
                 dir.Create();
 
-                foreach (string subcarpeta in subcarpetas)
+                foreach (CarpetaConf carp in GlobalController.listaCarpetaConfActualizada)
                 {
-                    string nombreCarpeta = subcarpeta.Substring(subcarpeta.Length - 1);
-
                     //Le pasamos el nombre de la subcarpeta para que procese los ficheros que contiene
-                    procesarArchivosSubcarpeta(subcarpeta, dir.FullName);
+                    procesarArchivosSubcarpeta(carp, dir.FullName);
 
                     //Antes de empezar a escribir el siguiente fichero referente a la carpeta siguiente, reiniciamos datos
                     limpiarListasYFecha();
                 }
+
+                //foreach (string subcarpeta in subcarpetas)
+                //{
+                //    string nombreCarpeta = subcarpeta.Substring(subcarpeta.Length - 1);
+
+                //    //Le pasamos el nombre de la subcarpeta para que procese los ficheros que contiene
+                //    procesarArchivosSubcarpeta(subcarpeta, dir.FullName);
+
+                //    //Antes de empezar a escribir el siguiente fichero referente a la carpeta siguiente, reiniciamos datos
+                //    limpiarListasYFecha();
+                //}
             }
             catch (Exception ex)
             {
@@ -75,25 +124,33 @@ namespace LCMS_ODO_GPS_GENERATOR
             fecha = string.Empty;
         }
 
-        public void procesarArchivosSubcarpeta(string rutaSubcarpeta, string rutaDestinoCarpetaArchivos)
+        //public void procesarArchivosSubcarpeta(string rutaSubcarpeta, string rutaDestinoCarpetaArchivos)
+        public void procesarArchivosSubcarpeta(CarpetaConf carpConf, string rutaDestinoCarpetaArchivos)
         {
-            string[] archivosXML = Directory.GetFiles(rutaSubcarpeta, "*.xml", SearchOption.TopDirectoryOnly);
-            string nombreCarpeta = rutaSubcarpeta.Substring(rutaSubcarpeta.Length - 1);
+            string[] archivosXML = Directory.GetFiles(carpConf.rutaCarpeta, "*.xml", SearchOption.TopDirectoryOnly);
+            //string nombreCarpeta = carpConf.rutaCarpeta.Substring(carpConf.rutaCarpeta.Length - 1);
+            string nombreCarpeta = Path.GetFileName(carpConf.rutaCarpeta);
 
-            foreach (string archivoXML in archivosXML)
+
+            //Solo generaremos archivos cuando la carpeta, contenga archivos XML
+            if (archivosXML.Length>0)
             {
-                //Leemos roughness, fecha y eventos
-                leerDatosXml(archivoXML);
-            }
+                foreach (string archivoXML in archivosXML)
+                {
+                    //Leemos roughness, fecha y eventos
+                    leerDatosXml(archivoXML);
+                }
 
-            //Una vez hemos finalizado de leer todos los archivos de esa carpeta, generamos archivo.
-            generarArchivoIRI(rutaDestinoCarpetaArchivos, nombreCarpeta);
-            generarArchivoEvent(rutaDestinoCarpetaArchivos, nombreCarpeta);
-            generarArchivoGpsimp(rutaDestinoCarpetaArchivos, nombreCarpeta);
+                //Una vez hemos finalizado de leer todos los archivos de esa carpeta, generamos archivo.
+                generarArchivoIRI(rutaDestinoCarpetaArchivos, nombreCarpeta);
+                generarArchivoEvent(rutaDestinoCarpetaArchivos, nombreCarpeta, carpConf.PKInicio, carpConf.sentidoCalzada);
+                generarArchivoGpsimp(rutaDestinoCarpetaArchivos, nombreCarpeta);
+            }
+            
 
 
             //Después de generar los archivos IRI, EVT y GPSIMP, procesaremos los archivos .erd
-            string[] archivosErd = Directory.GetFiles(rutaSubcarpeta, "*.erd", SearchOption.TopDirectoryOnly);
+            string[] archivosErd = Directory.GetFiles(carpConf.rutaCarpeta, "*.erd", SearchOption.TopDirectoryOnly);
 
             if (archivosErd.Length > 0)
             {
@@ -251,7 +308,7 @@ namespace LCMS_ODO_GPS_GENERATOR
             }
         }
 
-        private void generarArchivoEvent(string rutaDestinoCarpetaArchivos, string nombreCarpeta)
+        private void generarArchivoEvent(string rutaDestinoCarpetaArchivos, string nombreCarpeta, int PKInicio, string sentidoCalzada)
         {
             string nomCarpMod = modificarNomCarp(nombreCarpeta);
             string nombreArchivo = rutaDestinoCarpetaArchivos + "\\" + "LCMS" + fecha + nomCarpMod + ".dist.evt.txt";
@@ -281,14 +338,18 @@ namespace LCMS_ODO_GPS_GENERATOR
                     escritor.WriteLine("Name, Type, Code, Index, Active, Distance[m], Distance toward[m], Distance after[m], Text, Lasers, Latitude, Longitude, Height, GeoHeight, DOP, Satellites");
 
                     int cont = 0;
-                    int PK = 0;
+                    int PK = PKInicio;
                     while (listaIncidencias.Count > cont)
                     {
 
                         if (listaIncidencias[cont].incidencia == 9 || listaIncidencias[cont].incidencia == 1)
                         {
                             escritor.WriteLine("Event, " + listaIncidencias[cont].incidencia + ", 0, 0, yes, " + listaIncidencias[cont].distanciaCab + ", , , " + "PK" + PK + ", , 0.0, 0.0, 0.0, 0.0, 0.0, 0");
-                            PK++;
+
+                            if (sentidoCalzada.Equals("+") || sentidoCalzada.Equals("1") || sentidoCalzada.Equals("c") || sentidoCalzada.Equals("C"))
+                                PK++;
+                            else
+                                PK--;
                         }
                         else
                         {

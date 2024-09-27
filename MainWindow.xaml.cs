@@ -1,4 +1,7 @@
 ﻿using DocumentFormat.OpenXml.Spreadsheet;
+using LCMS_ODO_GPS_GENERATOR.Objetos;
+using LCMS_ODO_GPS_GENERATOR.Recursos;
+using LCMS_ODO_GPS_GENERATOR.Vistas;
 using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
@@ -25,7 +28,12 @@ namespace LCMS_ODO_GPS_GENERATOR
     // 17/09/2024 - VERSION 1.0.2
     // - Añadimos boton para generar archivos IRI. Creamos clases nueva, Roughness
 
-
+    // 27/09/2024 - Compilamos nuevos cambios, pero mantenemos version.
+    // - Al pulsar sobre boton Roughness, seleccionamos carpeta (seleccionando un fichero), y mostramos grid (DataTable) con lista de objetos CarpetaConf.
+    // - Valores Crecientes -> C, c, 1, +
+    // - Valores Decrecientes -> D, d, 2, -
+    // - Se usan para saber si sumar o restar el PK
+    // - Si se indican valores diferentes a estos, saltará warning.
 
 
     /// <summary>
@@ -45,6 +53,9 @@ namespace LCMS_ODO_GPS_GENERATOR
         public static string VERSION = "1.0.2";
         XmlElement xGPSCoorValido;   // Ultima Etiqueta GPSCoordinate del XML valida.
         string nombreArchivoValido;
+
+        List<CarpetaConf> listaCarpetasConf = new List<CarpetaConf>();
+
 
         public MainWindow()
         {
@@ -162,29 +173,73 @@ namespace LCMS_ODO_GPS_GENERATOR
 
             if (openFileDialog.ShowDialog() == true)
             {
-                Btn_Roughness.IsEnabled = false;
-                ProgressBarSm.Visibility = Visibility.Visible;
+                DirectoryInfo di = new DirectoryInfo(System.IO.Path.GetDirectoryName(openFileDialog.FileName));
 
-                Task task = Task.Run(() =>
+                if (di.Parent != null)
                 {
-                    DirectoryInfo di = new DirectoryInfo(System.IO.Path.GetDirectoryName(openFileDialog.FileName));
+                    string carpeta = di.Parent.FullName;
 
-                    //Añadimos nuevo @SM 16/09/2024
-                    if (di.Parent != null)
+                    //Añadimos objetos a nuestra listaCarpetasConf
+                    generarListaDeObjetosCarpetasConf(carpeta);
+
+                    //Si tenemos datos abrimos GRID
+                    if (listaCarpetasConf.Count > 0)
                     {
-                        string carpeta = di.Parent.FullName;
-                        roughness.recogerSubCarpetas(carpeta);
+                        var ventana = new GridCarpetas(listaCarpetasConf);
+
+                        if (ventana.ShowDialog() == true)
+                        {
+                            Btn_Roughness.IsEnabled = false;
+                            ProgressBarSm.Visibility = Visibility.Visible;
+
+                            //MessageBox.Show("Se cerró con el ACEPTAR");
+                            //roughness.recogerSubCarpetas(carpeta);
+                            roughness.procesarCarpetasConfiguradas(carpeta, ventana.listaCarpetasConf);
+
+                            Btn_Roughness.IsEnabled = true;
+                            ProgressBarSm.Visibility = Visibility.Hidden;
+                            MessageBox.Show("Operación realizada correctamente.", "Finalizado");
+
+                        }
+                        else
+                        {
+                            //Si cierra con la X no hacemos nada
+                        }
                     }
-                    this.Dispatcher.Invoke(() =>
-                    {
-                        Btn_Roughness.IsEnabled = true;
-                        ProgressBarSm.Visibility = Visibility.Hidden;
 
-                    });
-                    MessageBox.Show("Operación realizada correctamente.", "Finalizado");
-                });
+                }
+
+                //this.Dispatcher.Invoke(() =>
+                //{
+                //    Btn_Roughness.IsEnabled = true;
+                //    ProgressBarSm.Visibility = Visibility.Hidden;
+                //});
             }
         }
+
+
+        //Recibimos ruta y generamos la lista de objetos con las carpetas de la ruta indicada
+        private void generarListaDeObjetosCarpetasConf(string ruta)
+        {
+            //Antes de generar la lista, limpiamos la anterior
+            listaCarpetasConf.Clear();
+
+            //Recojo todas las subcarpetas
+            string[] subcarpetas = Directory.GetDirectories(ruta, "*", SearchOption.AllDirectories);
+            subcarpetas = subcarpetas.OrderBy(carpeta => carpeta, new NaturalStringComparer()).ToArray();
+
+
+            //Recorremos subcarpetas y creamos objetos CarpetaConf para añadirlo a la lista listaCarpetasConf
+            foreach (string subcarpeta in subcarpetas)
+            {
+                string nombreCarpeta = Path.GetFileName(subcarpeta);
+                CarpetaConf carpetaConf = new CarpetaConf(nombreCarpeta, subcarpeta);
+
+                listaCarpetasConf.Add(carpetaConf);
+            }
+        }
+
+
         private void procesarArchivos(FileInfo[] archivos)
         {
             List<string> lMensajes;

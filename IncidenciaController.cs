@@ -42,7 +42,8 @@ namespace LCMS_ODO_GPS_GENERATOR
 
                 foreach (string subcarpeta in subcarpetas)
                 {
-                    string nombreCarpeta = subcarpeta.Substring(subcarpeta.Length - 1);
+                    //Recogemos nombre de la carpeta
+                    string nombreCarpeta = Path.GetFileName(subcarpeta);
 
                     // Procesar todos los archivos XML dentro de la subcarpeta actual
                     // Comprobamos si tiene archivos, si no tiene, ignoramos carpeta
@@ -92,8 +93,8 @@ namespace LCMS_ODO_GPS_GENERATOR
             hoja.Cell(1, 2).Value = "Distancia cabecera";
             hoja.Cell(1, 2).Style.Fill.SetBackgroundColor(XLColor.PeachOrange);
             hoja.Cell(1, 2).Style.Font.Bold = true;
-            hoja.Cell(1, 2).Style.Alignment.WrapText=true;
-            
+            hoja.Cell(1, 2).Style.Alignment.WrapText = true;
+
 
             hoja.Cell(1, 3).Value = "Longitud";
             hoja.Cell(1, 3).Style.Fill.SetBackgroundColor(XLColor.PeachOrange);
@@ -118,7 +119,7 @@ namespace LCMS_ODO_GPS_GENERATOR
             int row = 2;
             int pk = 0;
 
-            for (int i = 0; listaIncidencias.Count > i; i++) 
+            for (int i = 0; listaIncidencias.Count > i; i++)
             {
                 Incidencia inc = listaIncidencias[i];
                 hoja.Cell(row, 2).Value = inc.distanciaCab;
@@ -127,7 +128,7 @@ namespace LCMS_ODO_GPS_GENERATOR
                     hoja.Cell(row, 3).Value = inc.distanciaCab;//Longitud
                 else
                     hoja.Cell(row, 3).Value = inc.distanciaCab - listaIncidencias[i - 1].distanciaCab; //Longitud , resta de distanciaCab[i] y distanciaCab[i-1]
-                
+
                 hoja.Cell(row, 4).Value = pk;
                 hoja.Cell(row, 5).Value = inc.latitude;
                 hoja.Cell(row, 6).Value = inc.longitude;
@@ -135,8 +136,8 @@ namespace LCMS_ODO_GPS_GENERATOR
                 row++;
 
                 //Solo sumamos PK si se trata de incidencias 9 o 1
-                if (inc.incidencia==9 || inc.incidencia == 1) pk++;
-                
+                if (inc.incidencia == 9 || inc.incidencia == 1) pk++;
+
             }
 
             string _nombreArchivo = destino + "\\" + nombreCarpeta + ".xlsx";
