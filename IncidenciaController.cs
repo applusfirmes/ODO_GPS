@@ -1,7 +1,9 @@
 ﻿using ClosedXML.Excel;
+using Irony;
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.SqlClient;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -205,9 +207,9 @@ namespace LCMS_ODO_GPS_GENERATOR
                     }
                 }
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-
+                Console.WriteLine("Función leerIncidenciaYLatLog, ERROR: " + ex.Message);
             }
         }
 
