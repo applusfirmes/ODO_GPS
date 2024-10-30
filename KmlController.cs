@@ -38,7 +38,7 @@ namespace LCMS_ODO_GPS_GENERATOR
             catch (Exception ex)
             {
                 // Manejo de errores
-                MessageBox.Show($"Ocurrió un error: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"Ocurrió un error función getCarpetas, KmlController: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -69,7 +69,7 @@ namespace LCMS_ODO_GPS_GENERATOR
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Ocurrió un error: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"Ocurrió un error función leerArchivosXML, KmlController: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 

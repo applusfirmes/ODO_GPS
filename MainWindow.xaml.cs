@@ -40,6 +40,7 @@ namespace LCMS_ODO_GPS_GENERATOR
     // en carpeta (que creamos automáticamente) ODO&GPS
 
 
+
     /// <summary>
     /// Lógica de interacción para MainWindow.xaml
     /// </summary>
@@ -59,6 +60,7 @@ namespace LCMS_ODO_GPS_GENERATOR
         string nombreArchivoValido;
 
         List<CarpetaConf> listaCarpetasConf = new List<CarpetaConf>();
+
 
 
         public MainWindow()
@@ -226,6 +228,8 @@ namespace LCMS_ODO_GPS_GENERATOR
 
         private void Btn_Roughness_Click(object sender, RoutedEventArgs e)
         {
+            GlobalController.ListInfoWarnings.Clear();
+
             OpenFileDialog openFileDialog = new OpenFileDialog();
             openFileDialog.Title = "Selecciona la ruta de los ficheros XML.";
             Roughness roughness = new Roughness();
@@ -241,7 +245,7 @@ namespace LCMS_ODO_GPS_GENERATOR
                     //Añadimos objetos a nuestra listaCarpetasConf
                     generarListaDeObjetosCarpetasConf(carpeta);
 
-                    //Si tenemos datos abrimos GRID
+                    //Si tenemos datos abrimos GRID, donde indicaremos el sentido (+ -) y primer PK de cada carpeta
                     if (listaCarpetasConf.Count > 0)
                     {
                         var ventana = new GridCarpetas(listaCarpetasConf);
@@ -251,12 +255,16 @@ namespace LCMS_ODO_GPS_GENERATOR
                             Btn_Roughness.IsEnabled = false;
                             ProgressBarSm.Visibility = Visibility.Visible;
 
-                            //MessageBox.Show("Se cerró con el ACEPTAR");
-                            //roughness.recogerSubCarpetas(carpeta);
                             roughness.procesarCarpetasConfiguradas(carpeta, ventana.listaCarpetasConf);
 
                             Btn_Roughness.IsEnabled = true;
                             ProgressBarSm.Visibility = Visibility.Hidden;
+
+                            completarWarnings();
+
+                            //VentanaInfo ventanaInfo = new VentanaInfo();
+                            //ventanaInfo.ShowDialog();
+
                             MessageBox.Show("Operación realizada correctamente.", "Finalizado");
 
                         }
@@ -273,6 +281,15 @@ namespace LCMS_ODO_GPS_GENERATOR
                 //    Btn_Roughness.IsEnabled = true;
                 //    ProgressBarSm.Visibility = Visibility.Hidden;
                 //});
+            }
+        }
+
+        //Solo se usa cuando trabajamo con botón "Roughness"
+        public void completarWarnings()
+        {
+            foreach (string warning in GlobalController.ListInfoWarnings)
+            {
+                tbMensajesSistema.Text += warning + Environment.NewLine;
             }
         }
 
