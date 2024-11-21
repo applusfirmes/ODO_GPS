@@ -58,7 +58,7 @@ namespace LCMS_ODO_GPS_GENERATOR
         List<string> List_odoFinal;
         List<DatosGPS> List_DatosGPS;
         XmlDocument xmldoc;
-        public static string VERSION = "1.0.3"; //Cambio de versión el dia 21/10/2024
+        public static string VERSION = "1.0.4"; //Cambio de versión el dia 21/10/2024
         XmlElement xGPSCoorValido;   // Ultima Etiqueta GPSCoordinate del XML valida, que pertenece al nodo GPSInformation
         string nombreArchivoValido;
         List<CarpetaConf> listaCarpetasConf = new List<CarpetaConf>();
