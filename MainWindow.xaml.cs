@@ -39,6 +39,9 @@ namespace LCMS_ODO_GPS_GENERATOR
     // - El botón de Procesar, añadimos cambios para que al seleccionar archivo, recorra todas las subcarpetas, lea y genere archivos GPS y trac
     // en carpeta (que creamos automáticamente) ODO&GPS
 
+    // 21/11/2024 - Compilamos nueva versión, VERSION 1.0.4
+    // - En la función de 'BtnProcesar', en el foreach añadimos xGPSCoorValido = null; ya que es necesario para evitar que acumule datos de la antigua carpeta:
+    //Ejemplo, si tenemos carpeta 19, 20, si la carpeta 20 No tiene GPSCoordinamos, entonces en su fichero que genere, habran datos de la carpeta 19 y del 20.
 
 
     /// <summary>
@@ -56,7 +59,7 @@ namespace LCMS_ODO_GPS_GENERATOR
         List<DatosGPS> List_DatosGPS;
         XmlDocument xmldoc;
         public static string VERSION = "1.0.3"; //Cambio de versión el dia 21/10/2024
-        XmlElement xGPSCoorValido;   // Ultima Etiqueta GPSCoordinate del XML valida.
+        XmlElement xGPSCoorValido;   // Ultima Etiqueta GPSCoordinate del XML valida, que pertenece al nodo GPSInformation
         string nombreArchivoValido;
 
         List<CarpetaConf> listaCarpetasConf = new List<CarpetaConf>();
@@ -106,6 +109,9 @@ namespace LCMS_ODO_GPS_GENERATOR
                 List_odoEventos = new List<string>();
                 List_DatosGPS = new List<DatosGPS>();
 
+                //NUEVO PARA PROBAR @SM 21/11/2024
+                List_odoFinal = new List<string>();
+
                 ProgressBar.Maximum = archivos.Count();
                 ProgressBar.Minimum = 0;
                 ProgressBar.Value = 0;
@@ -117,16 +123,36 @@ namespace LCMS_ODO_GPS_GENERATOR
                 nombreArchivoValido = "";
                 xGPSCoorValido = null;
 
+
+                //Descomentar lo de abajo
+
                 Task task = Task.Run(() =>
                 {
                     //Recorrer las carpetas y actualizar variable archivos
                     string[] subcarpetas = Directory.GetDirectories(carpeta, "*", SearchOption.AllDirectories);
+                    //ORDENAMOS SUBCARPETAS LISTA
+                    var subcarpetasOrdenadas = subcarpetas
+                                .OrderBy(subcarpeta =>
+                                    {
+                                        // Extraer el número de la carpeta, si es posible
+                                        var lastPart = Path.GetFileName(subcarpeta); // Obtener el nombre de la subcarpeta
+                                        int number;
+                                        // Intentar convertir la última parte del nombre a número
+                                        return int.TryParse(lastPart, out number) ? number : int.MaxValue; // Si no es número, ponerlo al final
+                                    })
+                                .ToArray();
 
-                    foreach (string subcarpeta in subcarpetas)
+                    string text = "";
+                    foreach (string subcarpeta in subcarpetasOrdenadas)
                     {
+
                         //Creamos DirectoryInfo para poder usar funcion GetFiles
                         DirectoryInfo dirSubCarpeta = new DirectoryInfo(subcarpeta);
                         archivos = dirSubCarpeta.GetFiles("*.XML");
+
+                        //TEST
+                        int cantidad = archivos.Length;
+                        text = text + "CARPETA " + subcarpeta + ": " + cantidad.ToString() + ", ";
 
                         if (archivos.Length > 0)
                         {
@@ -149,7 +175,9 @@ namespace LCMS_ODO_GPS_GENERATOR
                             List_odoEventos.Clear();
                             List_DatosGPS.Clear();
                             xmldoc.RemoveAll();
+                            xGPSCoorValido = null; //Añadido el 21/11/2024 para resolver bug; Cuando NO tiene coordenadas en el GPSInformation
                         }
+
 
                     }
 
