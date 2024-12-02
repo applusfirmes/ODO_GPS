@@ -37,11 +37,16 @@
 
         </StackPanel>
 
+      
+
         <DockPanel Margin="10,10,10,10" Grid.Row="1" LastChildFill="True" Grid.ColumnSpan="2">
             <Label Content="Mensajes del sistema" FontWeight="Bold" FontSize="14" DockPanel.Dock="Top"></Label>
-            <TextBox x:Name="tbMensajesSistema" ScrollViewer.VerticalScrollBarVisibility="Auto" Height="auto" TextWrapping="Wrap" VerticalAlignment="Stretch" AcceptsReturn="True" />
-        </DockPanel>
+            <StackPanel Orientation="Vertical" Height="500">
+                <TextBox x:Name="tbMensajesError" ScrollViewer.VerticalScrollBarVisibility="Auto" Height="auto" TextWrapping="Wrap" VerticalAlignment="Stretch" AcceptsReturn="True" Foreground="Red" FontWeight="Bold" />
+                <TextBox x:Name="tbMensajesSistema" ScrollViewer.VerticalScrollBarVisibility="Auto" Height="auto" TextWrapping="Wrap" VerticalAlignment="Stretch" AcceptsReturn="True" />
+            </StackPanel>
 
+        </DockPanel>
 
 
 
