@@ -1,7 +1,9 @@
 ﻿using ClosedXML.Excel;
+using Irony;
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.SqlClient;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -42,7 +44,8 @@ namespace LCMS_ODO_GPS_GENERATOR
 
                 foreach (string subcarpeta in subcarpetas)
                 {
-                    string nombreCarpeta = subcarpeta.Substring(subcarpeta.Length - 1);
+                    //Recogemos nombre de la carpeta
+                    string nombreCarpeta = Path.GetFileName(subcarpeta);
 
                     // Procesar todos los archivos XML dentro de la subcarpeta actual
                     // Comprobamos si tiene archivos, si no tiene, ignoramos carpeta
@@ -57,7 +60,7 @@ namespace LCMS_ODO_GPS_GENERATOR
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Ocurrió un error: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"Ocurrió un error función leerArchivosXML, IncidenciaController: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -65,82 +68,99 @@ namespace LCMS_ODO_GPS_GENERATOR
         {
             var contieneArchivos = false;
 
-            // Obtener todos los archivos XML de la subcarpeta actual
-            string[] archivosXML = Directory.GetFiles(rutaSubcarpeta, "*.xml", SearchOption.TopDirectoryOnly);
-            if (archivosXML.Length > 0)
+            try
             {
-                contieneArchivos = true;
-                foreach (string archivoXML in archivosXML)
+                // Obtener todos los archivos XML de la subcarpeta actual
+                string[] archivosXML = Directory.GetFiles(rutaSubcarpeta, "*.xml", SearchOption.TopDirectoryOnly);
+                if (archivosXML.Length > 0)
                 {
-                    leerIncidenciaYLatLog(archivoXML);
+                    contieneArchivos = true;
+                    foreach (string archivoXML in archivosXML)
+                    {
+                        leerIncidenciaYLatLog(archivoXML);
+                    }
                 }
-            }
 
-            return contieneArchivos;
+                return contieneArchivos;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("ERROR en función ProcesarArchivosXML: " + ex.Message);
+                return false;
+            }
+            
         }
 
         private void generarArchivoExcel(string nombreCarpeta, string destino)
         {
-            XLWorkbook libro = new XLWorkbook();
-
-            List<List<string>> estructuraBase = new List<List<string>>();
-
-            ClosedXML.Excel.IXLWorksheet hoja = libro.Worksheets.Add("Lista de incidencias");
-
-            //dicEstilos.Add(TITULO1, new estilo() { fontSize = 10, fontName = "Arial", bold = true, colorContenido = XLColor.Black, borde = XLBorderStyleValues.None, bordeColor = XLColor.NoColor, bordeInterno = XLBorderStyleValues.None, bordeColorInterno = XLColor.NoColor });
-
-            hoja.Cell(1, 2).Value = "Distancia cabecera";
-            hoja.Cell(1, 2).Style.Fill.SetBackgroundColor(XLColor.PeachOrange);
-            hoja.Cell(1, 2).Style.Font.Bold = true;
-            hoja.Cell(1, 2).Style.Alignment.WrapText=true;
-            
-
-            hoja.Cell(1, 3).Value = "Longitud";
-            hoja.Cell(1, 3).Style.Fill.SetBackgroundColor(XLColor.PeachOrange);
-            hoja.Cell(1, 3).Style.Font.Bold = true;
-
-            hoja.Cell(1, 4).Value = "PK";
-            hoja.Cell(1, 4).Style.Fill.SetBackgroundColor(XLColor.PeachOrange);
-            hoja.Cell(1, 4).Style.Font.Bold = true;
-
-            hoja.Cell(1, 5).Value = "Latitude";
-            hoja.Cell(1, 5).Style.Fill.SetBackgroundColor(XLColor.PeachOrange);
-            hoja.Cell(1, 5).Style.Font.Bold = true;
-
-            hoja.Cell(1, 6).Value = "Longitude";
-            hoja.Cell(1, 6).Style.Fill.SetBackgroundColor(XLColor.PeachOrange);
-            hoja.Cell(1, 6).Style.Font.Bold = true;
-
-            hoja.Cell(1, 7).Value = "Incidencia";
-            hoja.Cell(1, 7).Style.Fill.SetBackgroundColor(XLColor.PeachOrange);
-            hoja.Cell(1, 7).Style.Font.Bold = true;
-
-            int row = 2;
-            int pk = 0;
-
-            for (int i = 0; listaIncidencias.Count > i; i++) 
+            try
             {
-                Incidencia inc = listaIncidencias[i];
-                hoja.Cell(row, 2).Value = inc.distanciaCab;
+                XLWorkbook libro = new XLWorkbook();
 
-                if (i == 0)
-                    hoja.Cell(row, 3).Value = inc.distanciaCab;//Longitud
-                else
-                    hoja.Cell(row, 3).Value = inc.distanciaCab - listaIncidencias[i - 1].distanciaCab; //Longitud , resta de distanciaCab[i] y distanciaCab[i-1]
-                
-                hoja.Cell(row, 4).Value = pk;
-                hoja.Cell(row, 5).Value = inc.latitude;
-                hoja.Cell(row, 6).Value = inc.longitude;
-                hoja.Cell(row, 7).Value = inc.incidencia; //Devolvera el num incidencia
-                row++;
+                List<List<string>> estructuraBase = new List<List<string>>();
 
-                //Solo sumamos PK si se trata de incidencias 9 o 1
-                if (inc.incidencia==9 || inc.incidencia == 1) pk++;
-                
+                ClosedXML.Excel.IXLWorksheet hoja = libro.Worksheets.Add("Lista de incidencias");
+
+                //dicEstilos.Add(TITULO1, new estilo() { fontSize = 10, fontName = "Arial", bold = true, colorContenido = XLColor.Black, borde = XLBorderStyleValues.None, bordeColor = XLColor.NoColor, bordeInterno = XLBorderStyleValues.None, bordeColorInterno = XLColor.NoColor });
+
+                hoja.Cell(1, 2).Value = "Distancia cabecera";
+                hoja.Cell(1, 2).Style.Fill.SetBackgroundColor(XLColor.PeachOrange);
+                hoja.Cell(1, 2).Style.Font.Bold = true;
+                hoja.Cell(1, 2).Style.Alignment.WrapText = true;
+
+
+                hoja.Cell(1, 3).Value = "Longitud";
+                hoja.Cell(1, 3).Style.Fill.SetBackgroundColor(XLColor.PeachOrange);
+                hoja.Cell(1, 3).Style.Font.Bold = true;
+
+                hoja.Cell(1, 4).Value = "PK";
+                hoja.Cell(1, 4).Style.Fill.SetBackgroundColor(XLColor.PeachOrange);
+                hoja.Cell(1, 4).Style.Font.Bold = true;
+
+                hoja.Cell(1, 5).Value = "Latitude";
+                hoja.Cell(1, 5).Style.Fill.SetBackgroundColor(XLColor.PeachOrange);
+                hoja.Cell(1, 5).Style.Font.Bold = true;
+
+                hoja.Cell(1, 6).Value = "Longitude";
+                hoja.Cell(1, 6).Style.Fill.SetBackgroundColor(XLColor.PeachOrange);
+                hoja.Cell(1, 6).Style.Font.Bold = true;
+
+                hoja.Cell(1, 7).Value = "Incidencia";
+                hoja.Cell(1, 7).Style.Fill.SetBackgroundColor(XLColor.PeachOrange);
+                hoja.Cell(1, 7).Style.Font.Bold = true;
+
+                int row = 2;
+                int pk = 0;
+
+                for (int i = 0; listaIncidencias.Count > i; i++)
+                {
+                    Incidencia inc = listaIncidencias[i];
+                    hoja.Cell(row, 2).Value = inc.distanciaCab;
+
+                    if (i == 0)
+                        hoja.Cell(row, 3).Value = inc.distanciaCab;//Longitud
+                    else
+                        hoja.Cell(row, 3).Value = inc.distanciaCab - listaIncidencias[i - 1].distanciaCab; //Longitud , resta de distanciaCab[i] y distanciaCab[i-1]
+
+                    hoja.Cell(row, 4).Value = pk;
+                    hoja.Cell(row, 5).Value = inc.latitude;
+                    hoja.Cell(row, 6).Value = inc.longitude;
+                    hoja.Cell(row, 7).Value = inc.incidencia; //Devolvera el num incidencia
+                    row++;
+
+                    //Solo sumamos PK si se trata de incidencias 9 o 1
+                    if (inc.incidencia == 9 || inc.incidencia == 1) pk++;
+
+                }
+
+                string _nombreArchivo = destino + "\\" + nombreCarpeta + ".xlsx";
+                libro.SaveAs(_nombreArchivo);
             }
-
-            string _nombreArchivo = destino + "\\" + nombreCarpeta + ".xlsx";
-            libro.SaveAs(_nombreArchivo);
+            catch (Exception ex)
+            {
+                MessageBox.Show("ERROR en función generarArchivoExcel: " + ex.Message);
+            }
+            
         }
 
         private void leerIncidenciaYLatLog(string rutaArchivoXML)
@@ -204,9 +224,9 @@ namespace LCMS_ODO_GPS_GENERATOR
                     }
                 }
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-
+                Console.WriteLine("Función leerIncidenciaYLatLog, ERROR: " + ex.Message);
             }
         }
 

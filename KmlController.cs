@@ -38,7 +38,7 @@ namespace LCMS_ODO_GPS_GENERATOR
             catch (Exception ex)
             {
                 // Manejo de errores
-                MessageBox.Show($"Ocurrió un error: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"Ocurrió un error función getCarpetas, KmlController: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -53,7 +53,8 @@ namespace LCMS_ODO_GPS_GENERATOR
 
                 foreach (string subcarpeta in subcarpetas)
                 {
-                    string nombreCarpeta = subcarpeta.Substring(subcarpeta.Length - 1);
+                    //Recogemos nombre de la carpeta
+                    string nombreCarpeta = Path.GetFileName(subcarpeta);
 
                     // Procesar todos los archivos XML dentro de la subcarpeta actual
                     // Comprobamos si tiene archivos, si no tiene, ignoramos carpeta
@@ -61,14 +62,14 @@ namespace LCMS_ODO_GPS_GENERATOR
                     {
                         generarArchivoKML(listaLatitud, listaLongitud, nombreCarpeta, destino);
                     }
-                    
+
                     limpiarListas();
 
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Ocurrió un error: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"Ocurrió un error función leerArchivosXML, KmlController: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -78,7 +79,7 @@ namespace LCMS_ODO_GPS_GENERATOR
 
             // Obtener todos los archivos XML de la subcarpeta actual
             string[] archivosXML = Directory.GetFiles(rutaSubcarpeta, "*.xml", SearchOption.TopDirectoryOnly);
-            if (archivosXML.Length>0)
+            if (archivosXML.Length > 0)
             {
                 contieneArchivos = true;
                 foreach (string archivoXML in archivosXML)
@@ -87,7 +88,7 @@ namespace LCMS_ODO_GPS_GENERATOR
                 }
             }
 
-            return contieneArchivos;            
+            return contieneArchivos;
         }
 
         private void leerLongitudLatitud(string rutaArchivo)
@@ -141,14 +142,14 @@ namespace LCMS_ODO_GPS_GENERATOR
             Microsoft.Win32.SaveFileDialog saveFileDialog = new Microsoft.Win32.SaveFileDialog();
             saveFileDialog.DefaultExt = "kml";
             saveFileDialog.AddExtension = true;
-            saveFileDialog.FileName = "KML_"+ nombreCarpeta;
+            saveFileDialog.FileName = "KML_" + nombreCarpeta;
 
             String archivo_xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
                 "\r\n<kml xmlns=\"http://www.opengis.net/kml/2.2\">\r\n  " +
                 "<Document>\r\n<name>Carpeta_" + nombreCarpeta + "</name>\r\n";
 
             //Estilo de linea
-            archivo_xml +="<Style id=\"lineColor1\">\r\n" +
+            archivo_xml += "<Style id=\"lineColor1\">\r\n" +
                 "<LineStyle>\r\n<color>ffffaa00</color>\r\n<width>2</width>\r\n</LineStyle>\r\n</Style>";
 
             //Estilo de punto de inicio
@@ -158,15 +159,15 @@ namespace LCMS_ODO_GPS_GENERATOR
             archivo_xml += "<Placemark>\r\n<name>Inicio</name>\r\n<styleUrl>#startPointStyle</styleUrl>\r\n<Point>\r\n<coordinates>" + listaLongitud[0].ToString().Replace(",", ".") + "," + listaLatitud[0].ToString().Replace(",", ".") + ",0\r\n" + "</coordinates>\r\n</Point>\r\n</Placemark>";
 
             //Empezamos ruta
-            archivo_xml+= "<Placemark>\r\n<name>Ruta" + nombreCarpeta + "</name>\r\n<styleUrl>#lineColor1</styleUrl>\r\n<LineString>\r\n<tessellate>1</tessellate>\r\n<coordinates>";
+            archivo_xml += "<Placemark>\r\n<name>Ruta" + nombreCarpeta + "</name>\r\n<styleUrl>#lineColor1</styleUrl>\r\n<LineString>\r\n<tessellate>1</tessellate>\r\n<coordinates>";
 
             int cont = 0;
-            string _fileName = rutaDestino+"\\"+saveFileDialog.FileName+".kml";
+            string _fileName = rutaDestino + "\\" + saveFileDialog.FileName + ".kml";
 
             using (StreamWriter file = new StreamWriter(_fileName, false, Encoding.GetEncoding("iso-8859-1")))
             {
-                
-                while (cont<listaLongitud.Count)
+
+                while (cont < listaLongitud.Count)
                 {
                     archivo_xml += listaLongitud[cont].ToString().Replace(",", ".") + "," + listaLatitud[cont].ToString().Replace(",", ".") + ",0\r\n";
                     cont++;

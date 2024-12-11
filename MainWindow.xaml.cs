@@ -1,4 +1,8 @@
 ﻿using DocumentFormat.OpenXml.Spreadsheet;
+using DocumentFormat.OpenXml.Wordprocessing;
+using LCMS_ODO_GPS_GENERATOR.Objetos;
+using LCMS_ODO_GPS_GENERATOR.Recursos;
+using LCMS_ODO_GPS_GENERATOR.Vistas;
 using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
@@ -10,8 +14,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Xml;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.TextBox;
-using WForm = System.Windows.Forms;
+using MessageBox = System.Windows.Forms.MessageBox;
 
 namespace LCMS_ODO_GPS_GENERATOR
 {
@@ -25,8 +28,24 @@ namespace LCMS_ODO_GPS_GENERATOR
     // 17/09/2024 - VERSION 1.0.2
     // - Añadimos boton para generar archivos IRI. Creamos clases nueva, Roughness
 
+    // 27/09/2024 - Compilamos nuevos cambios, pero mantenemos version.
+    // - Al pulsar sobre boton Roughness, seleccionamos carpeta (seleccionando un fichero), y mostramos grid (DataTable) con lista de objetos CarpetaConf.
+    // - Valores Crecientes -> C, c, 1, +
+    // - Valores Decrecientes -> D, d, 2, -
+    // - Se usan para saber si sumar o restar el PK
+    // - Si se indican valores diferentes a estos, saltará warning.
 
+    // 21/10/2024 - Compilamos nueva versión, VERSION 1.0.3
+    // - El botón de Procesar, añadimos cambios para que al seleccionar archivo, recorra todas las subcarpetas, lea y genere archivos GPS y trac
+    // en carpeta (que creamos automáticamente) ODO&GPS
 
+    // 21/11/2024 - Compilamos nueva versión, VERSION 1.0.4
+    // - En la función de 'BtnProcesar', en el foreach añadimos xGPSCoorValido = null; ya que es necesario para evitar que acumule datos de la antigua carpeta:
+    //Ejemplo, si tenemos carpeta 19, 20, si la carpeta 20 No tiene GPSCoordinamos, entonces en su fichero que genere, habran datos de la carpeta 19 y del 20.
+
+    // 02/12/2024 - Compilamos nueva versión, VERSION 1.0.5
+    // - Creamos nuevo textbox tbMensajesError en MainWindow.xml, donde almacenaremos los errores que arroje el bucle de la función "procesarArchivos"
+    //   para ello hemos añadido un try catch al bucle
 
     /// <summary>
     /// Lógica de interacción para MainWindow.xaml
@@ -34,7 +53,7 @@ namespace LCMS_ODO_GPS_GENERATOR
     public partial class MainWindow : Window
     {
         DirectoryInfo directorio;
-        DirectoryInfo directorio1;
+        //DirectoryInfo directorio1;
         String NombreDirectorioSave;
         FileInfo[] archivos;
         List<DateAndTime> List_odo;
@@ -42,9 +61,11 @@ namespace LCMS_ODO_GPS_GENERATOR
         List<string> List_odoFinal;
         List<DatosGPS> List_DatosGPS;
         XmlDocument xmldoc;
-        public static string VERSION = "1.0.2";
-        XmlElement xGPSCoorValido;   // Ultima Etiqueta GPSCoordinate del XML valida.
+        public static string VERSION = "1.0.5"; //Cambio de versión el dia 02/12/2024
+        XmlElement xGPSCoorValido;   // Ultima Etiqueta GPSCoordinate del XML valida, que pertenece al nodo GPSInformation
         string nombreArchivoValido;
+        List<CarpetaConf> listaCarpetasConf = new List<CarpetaConf>();
+
 
         public MainWindow()
         {
@@ -71,14 +92,26 @@ namespace LCMS_ODO_GPS_GENERATOR
 
             if (openFileDialog.ShowDialog() == true)
             {
+
                 directorio = new DirectoryInfo(System.IO.Path.GetDirectoryName(openFileDialog.FileName));
 
+                string carpeta = directorio.Parent.FullName;
+                DirectoryInfo dir = new DirectoryInfo(carpeta + "\\ODO&GPS");
+                dir.Create();
+                string dirDestino = dir.FullName;
+
+
+                //Recibe todos los archivos de carpeta /1
                 archivos = directorio.GetFiles("*.XML");
+
                 //Console.WriteLine(archivos.Count());
                 xmldoc = new XmlDocument();
                 List_odo = new List<DateAndTime>();
                 List_odoEventos = new List<string>();
                 List_DatosGPS = new List<DatosGPS>();
+
+                //NUEVO PARA PROBAR @SM 21/11/2024
+                List_odoFinal = new List<string>();
 
                 ProgressBar.Maximum = archivos.Count();
                 ProgressBar.Minimum = 0;
@@ -87,38 +120,112 @@ namespace LCMS_ODO_GPS_GENERATOR
                 Btn_Procesar.IsEnabled = false;
                 ProgressBar.Visibility = Visibility.Visible;
 
-                tbMensajesSistema.Text = "Procesando nuevos archivos de la carpeta " + openFileDialog.FileName + Environment.NewLine + Environment.NewLine;
+                //tbMensajesSistema.Text = "Procesando nuevos archivos de la carpeta " + openFileDialog.FileName + Environment.NewLine + Environment.NewLine;
                 nombreArchivoValido = "";
                 xGPSCoorValido = null;
 
+
                 Task task = Task.Run(() =>
                 {
-                    procesarArchivos(archivos);
+                    //Recorrer las carpetas y actualizar variable archivos
+                    string[] subcarpetas = Directory.GetDirectories(carpeta, "*", SearchOption.AllDirectories);
+                    //ORDENAMOS SUBCARPETAS LISTA
+                    var subcarpetasOrdenadas = subcarpetas
+                                .OrderBy(subcarpeta =>
+                                    {
+                                        // Extraer el número de la carpeta, si es posible
+                                        var lastPart = Path.GetFileName(subcarpeta); // Obtener el nombre de la subcarpeta
+                                        int number;
+                                        // Intentar convertir la última parte del nombre a número
+                                        return int.TryParse(lastPart, out number) ? number : int.MaxValue; // Si no es número, ponerlo al final
+                                    })
+                                .ToArray();
 
-                    NombreDirectorioSave = Seleccionardirectorio();
+                    string text = "";
 
-                    CrearArchivoGPS();
-                    CrearArchivoODO();
+                    try
+                    {
+                        foreach (string subcarpeta in subcarpetasOrdenadas)
+                        {
 
-                    MessageBox.Show("Operación realizada correctamente.");
+                            //Creamos DirectoryInfo para poder usar funcion GetFiles
+                            DirectoryInfo dirSubCarpeta = new DirectoryInfo(subcarpeta);
+                            archivos = dirSubCarpeta.GetFiles("*.XML");
+
+                            //TEST
+                            int cantidad = archivos.Length;
+                            text = text + "CARPETA " + subcarpeta + ": " + cantidad.ToString() + ", ";
+
+                            if (archivos.Length > 0)
+                            {
+
+                                this.Dispatcher.Invoke(() =>
+                                {
+                                    ProgressBar.Maximum = archivos.Count();
+                                    tbMensajesSistema.Text = tbMensajesSistema.Text + "Procesando nuevos archivos de la carpeta " + subcarpeta + Environment.NewLine;
+                                });
+                                string nombreCarpeta = Path.GetFileName(subcarpeta);
+                                procesarArchivos(archivos, nombreCarpeta);
+
+                                NombreDirectorioSave = Seleccionardirectorio(subcarpeta, dirDestino);
+
+                                CrearArchivoGPS();
+                                CrearArchivoODO();
+
+                                //Una vez acabamos el proceso de una carpeta, reiniciamos variables, 18/10/2024 @SM
+                                List_odo.Clear();
+                                List_odoEventos.Clear();
+                                List_DatosGPS.Clear();
+                                xmldoc.RemoveAll();
+                                xGPSCoorValido = null; //Añadido el 21/11/2024 para resolver bug; Cuando NO tiene coordenadas en el GPSInformation
+                            }
+
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show("Error en el bucle Btn_Procesar_Click: " + ex.Message + " - Carpeta: ");
+                    }
+
 
                     this.Dispatcher.Invoke(() =>
                     {
                         Btn_Procesar.IsEnabled = true;
                         ProgressBar.Visibility = Visibility.Hidden;
+                        tbMensajesSistema.Text = tbMensajesSistema.Text + "Archivos procesados en " + dirDestino + Environment.NewLine;
 
                     });
+
+                    MessageBox.Show("Operación realizada correctamente.");
+
                 });
             }
+        }
+
+        private string pedirRutaAlUsuario()
+        {
+            string rutaSeleccionada = "";
+
+            using (System.Windows.Forms.FolderBrowserDialog folderBrowser = new System.Windows.Forms.FolderBrowserDialog())
+            {
+                folderBrowser.Description = "Selecciona una carpeta";
+                folderBrowser.ShowNewFolderButton = true; // Mostrar botón para crear nueva carpeta
+                folderBrowser.RootFolder = Environment.SpecialFolder.Desktop;
+
+                if (folderBrowser.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+                {
+                    rutaSeleccionada = folderBrowser.SelectedPath;
+                    MessageBox.Show("Carpeta seleccionada: " + rutaSeleccionada, "Carpeta");
+                }
+            }
+
+            return rutaSeleccionada;
         }
 
         private void Btn_GenerarKML_Incidencias_Click(object sender, RoutedEventArgs e)
         {
             KmlController kmlController = new KmlController();
             IncidenciaController incidenciaController = new IncidenciaController();
-
-            //System.Windows.Forms.FolderBrowserDialog selCarpeta = new System.Windows.Forms.FolderBrowserDialog();
-            //selCarpeta.ShowDialog();
 
             OpenFileDialog openFileDialog = new OpenFileDialog();
             openFileDialog.Title = "Selecciona la ruta de los ficheros XML.";
@@ -156,63 +263,134 @@ namespace LCMS_ODO_GPS_GENERATOR
 
         private void Btn_Roughness_Click(object sender, RoutedEventArgs e)
         {
+            GlobalController.ListInfoWarnings.Clear();
+
             OpenFileDialog openFileDialog = new OpenFileDialog();
             openFileDialog.Title = "Selecciona la ruta de los ficheros XML.";
             Roughness roughness = new Roughness();
 
             if (openFileDialog.ShowDialog() == true)
             {
-                Btn_Roughness.IsEnabled = false;
-                ProgressBarSm.Visibility = Visibility.Visible;
+                DirectoryInfo di = new DirectoryInfo(System.IO.Path.GetDirectoryName(openFileDialog.FileName));
 
-                Task task = Task.Run(() =>
+                if (di.Parent != null)
                 {
-                    DirectoryInfo di = new DirectoryInfo(System.IO.Path.GetDirectoryName(openFileDialog.FileName));
+                    string carpeta = di.Parent.FullName;
 
-                    //Añadimos nuevo @SM 16/09/2024
-                    if (di.Parent != null)
+                    //Añadimos objetos a nuestra listaCarpetasConf
+                    generarListaDeObjetosCarpetasConf(carpeta);
+
+                    //Si tenemos datos abrimos GRID, donde indicaremos el sentido (+ -) y primer PK de cada carpeta
+                    if (listaCarpetasConf.Count > 0)
                     {
-                        string carpeta = di.Parent.FullName;
-                        roughness.recogerSubCarpetas(carpeta);
-                    }
-                    this.Dispatcher.Invoke(() =>
-                    {
-                        Btn_Roughness.IsEnabled = true;
-                        ProgressBarSm.Visibility = Visibility.Hidden;
+                        var ventana = new GridCarpetas(listaCarpetasConf);
 
-                    });
-                    MessageBox.Show("Operación realizada correctamente.", "Finalizado");
-                });
-            }
-        }
-        private void procesarArchivos(FileInfo[] archivos)
-        {
-            List<string> lMensajes;
-
-            for (int i = 0; i < archivos.Count(); i++)
-            {
-                string nombreArxivo = archivos[i].Name;
-                //Console.WriteLine(nombreArxivo);
-                xmldoc.Load(archivos[i].FullName);
-
-                bool bFallo = GenerarGPS(nombreArxivo, out lMensajes, i == 0);
-                lMensajes = null;
-                if (lMensajes != null && lMensajes.Count > 0)
-                {
-                    foreach (string mens in lMensajes)
-                    {
-                        tbMensajesSistema.Dispatcher.Invoke(() =>
+                        if (ventana.ShowDialog() == true)
                         {
-                            tbMensajesSistema.Text += mens + Environment.NewLine;
-                        });
+                            Btn_Roughness.IsEnabled = false;
+                            ProgressBarSm.Visibility = Visibility.Visible;
+
+                            roughness.procesarCarpetasConfiguradas(carpeta, ventana.listaCarpetasConf);
+
+                            Btn_Roughness.IsEnabled = true;
+                            ProgressBarSm.Visibility = Visibility.Hidden;
+
+                            completarWarnings();
+
+                            //VentanaInfo ventanaInfo = new VentanaInfo();
+                            //ventanaInfo.ShowDialog();
+
+                            MessageBox.Show("Operación realizada correctamente.", "Finalizado");
+
+                        }
+                        else
+                        {
+                            //Si cierra con la X no hacemos nada
+                        }
                     }
+
                 }
 
-                almacenaTìemposODO();
+                //this.Dispatcher.Invoke(() =>
+                //{
+                //    Btn_Roughness.IsEnabled = true;
+                //    ProgressBarSm.Visibility = Visibility.Hidden;
+                //});
+            }
+        }
 
-                ProgressBar.Dispatcher.Invoke(() =>
+        //Solo se usa cuando trabajamo con botón "Roughness"
+        public void completarWarnings()
+        {
+            foreach (string warning in GlobalController.ListInfoWarnings)
+            {
+                tbMensajesSistema.Text += warning + Environment.NewLine;
+            }
+        }
+
+
+        //Recibimos ruta y generamos la lista de objetos con las carpetas de la ruta indicada
+        private void generarListaDeObjetosCarpetasConf(string ruta)
+        {
+            //Antes de generar la lista, limpiamos la anterior
+            listaCarpetasConf.Clear();
+
+            //Recojo todas las subcarpetas
+            string[] subcarpetas = Directory.GetDirectories(ruta, "*", SearchOption.AllDirectories);
+            subcarpetas = subcarpetas.OrderBy(carpeta => carpeta, new NaturalStringComparer()).ToArray();
+
+
+            //Recorremos subcarpetas y creamos objetos CarpetaConf para añadirlo a la lista listaCarpetasConf
+            foreach (string subcarpeta in subcarpetas)
+            {
+                string nombreCarpeta = Path.GetFileName(subcarpeta);
+                CarpetaConf carpetaConf = new CarpetaConf(nombreCarpeta, subcarpeta);
+
+                listaCarpetasConf.Add(carpetaConf);
+            }
+        }
+
+
+        private void procesarArchivos(FileInfo[] archivos, string nombreCarpeta)
+        {
+            List<string> lMensajes;
+            string archivoError = "";
+
+            try
+            {
+                for (int i = 0; i < archivos.Count(); i++)
                 {
-                    ProgressBar.Value = i + 1;
+                    string nombreArxivo = archivos[i].Name;
+                    archivoError = nombreArxivo;
+                    //Console.WriteLine(nombreArxivo);
+                    xmldoc.Load(archivos[i].FullName);
+
+                    bool bFallo = GenerarGPS(nombreArxivo, out lMensajes, i == 0);
+                    lMensajes = null;
+                    if (lMensajes != null && lMensajes.Count > 0)
+                    {
+                        foreach (string mens in lMensajes)
+                        {
+                            tbMensajesSistema.Dispatcher.Invoke(() =>
+                            {
+                                tbMensajesSistema.Text += mens + Environment.NewLine;
+                            });
+                        }
+                    }
+
+                    almacenaTìemposODO();
+
+                    ProgressBar.Dispatcher.Invoke(() =>
+                    {
+                        ProgressBar.Value = i + 1;
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                tbMensajesError.Dispatcher.Invoke(() =>
+                {
+                    tbMensajesError.Text += nombreCarpeta + "/" + archivoError + " - " + ex.Message + Environment.NewLine;
                 });
             }
 
@@ -228,42 +406,42 @@ namespace LCMS_ODO_GPS_GENERATOR
 
                 //MessageBoxResult resultado = MessageBox.Show(this,"No hay ningún dato GPS, desea crear virtualmente datos virtuales para estos valores", "Faltan datos GPS", MessageBoxButton.YesNo, MessageBoxImage.Question);
 
-                if (true)
+                tbMensajesSistema.Dispatcher.Invoke(() =>
                 {
-                    tbMensajesSistema.Dispatcher.Invoke(() =>
-                    {
-                        tbMensajesSistema.Text += "No existen coordenadas GPS válidas en los archivos XMLs. Se han creado coordenadas virtuales inválidas." + Environment.NewLine;
-                    });
+                    tbMensajesSistema.Text += "No existen coordenadas GPS válidas en los archivos XMLs. Se han creado coordenadas virtuales inválidas." + Environment.NewLine;
+                });
 
-                    DateAndTime dtIni = new DateAndTime(List_odo.First().hora);
-                    DateAndTime dtFin = new DateAndTime(List_odo.Last().hora);
+                DateAndTime dtIni = new DateAndTime(List_odo.First().hora);
+                DateAndTime dtFin = new DateAndTime(List_odo.Last().hora);
 
-                    // Redondeos a modulo 200 milisegunds para INI
-                    int redondeoIni = dtIni.hora.Milliseconds % 200;
-                    int redondeoFin = dtFin.hora.Milliseconds % 200;
+                // Redondeos a modulo 200 milisegunds para INI
+                int redondeoIni = dtIni.hora.Milliseconds % 200;
+                int redondeoFin = dtFin.hora.Milliseconds % 200;
 
-                    int horasRetraso = 0;
-                    if (TimeZoneInfo.Local.IsDaylightSavingTime(List_odo[0].dia))
-                    {
-                        horasRetraso = 2;       // En horario de verano se retrasan 2 horas
-                    }
-                    else
-                    {
-                        horasRetraso = 1;       // En horario de verano se retrasan 1 hora
-                    }
-
-                    // Redondeos a modulo 200 milisegunds para INI
-
-                    dtIni.hora = dtIni.hora - new TimeSpan(0, horasRetraso, 0, 0, redondeoIni);
-                    dtFin.hora = dtFin.hora - new TimeSpan(0, horasRetraso, 0, 0, redondeoFin);
-
-                    List_DatosGPS.Add(new DatosGPS("0010.0000000", "00010.0000000", "0.00000000", dtIni, "0", "1", "W", "N", false));
-                    List_DatosGPS.Add(new DatosGPS("0010.0000000", "00010.0000000", "0.00000000", dtFin, "0", "1", "W", "N", false));
-
-                    introducirRegistrosGPScada200ms();
-                    interpolarGPS();
+                int horasRetraso = 0;
+                if (TimeZoneInfo.Local.IsDaylightSavingTime(List_odo[0].dia))
+                {
+                    horasRetraso = 2;       // En horario de verano se retrasan 2 horas
                 }
+                else
+                {
+                    horasRetraso = 1;       // En horario de verano se retrasan 1 hora
+                }
+
+                // Redondeos a modulo 200 milisegunds para INI
+
+                dtIni.hora = dtIni.hora - new TimeSpan(0, horasRetraso, 0, 0, redondeoIni);
+                dtFin.hora = dtFin.hora - new TimeSpan(0, horasRetraso, 0, 0, redondeoFin);
+
+                List_DatosGPS.Add(new DatosGPS("0010.0000000", "00010.0000000", "0.00000000", dtIni, "0", "1", "W", "N", false));
+                List_DatosGPS.Add(new DatosGPS("0010.0000000", "00010.0000000", "0.00000000", dtFin, "0", "1", "W", "N", false));
+
+                introducirRegistrosGPScada200ms();
+                interpolarGPS();
+
             }
+
+
         }
 
         private bool GenerarGPS(string _nombreArchivo, out List<string> _lMensajes, bool _bPrimero)
@@ -920,7 +1098,7 @@ namespace LCMS_ODO_GPS_GENERATOR
             }
         }
 
-        private String Seleccionardirectorio()
+        private String Seleccionardirectorio(string rutaCarpeta, string rutaDestino)
         {
 
             string auxFecha = List_odoFinal.ElementAt(0);
@@ -930,12 +1108,16 @@ namespace LCMS_ODO_GPS_GENERATOR
             }
             auxFecha = auxFecha.Split(':')[0] + "_" + auxFecha.Split(':')[1] + "_" + auxFecha.Split(':')[2];
 
-            SaveFileDialog saveFileDialog = new SaveFileDialog();
-            saveFileDialog.FileName = auxFecha;
-            saveFileDialog.ShowDialog();
-            directorio1 = new DirectoryInfo(saveFileDialog.FileName);
+            //SaveFileDialog saveFileDialog = new SaveFileDialog();
+            //saveFileDialog.FileName = auxFecha;
+            //saveFileDialog.ShowDialog();
+            //directorio1 = new DirectoryInfo(saveFileDialog.FileName);
 
-            NombreDirectorioSave = directorio1.Parent.FullName + "\\" + directorio.Name + "_odo_gps";
+            //NombreDirectorioSave = rutaCarpeta + "\\" + directorio.Name + "_odo_gps";
+            string nomCarpeta = Path.GetFileName(rutaCarpeta);
+            //NombreDirectorioSave = rutaCarpeta + "\\" + nomCarpeta + "_odo_gps";
+            NombreDirectorioSave = rutaDestino + "\\" + nomCarpeta + "_odo_gps";
+
             //Console.WriteLine(NombreDirectorioSave);
 
             if (!Directory.Exists(NombreDirectorioSave))
@@ -943,7 +1125,10 @@ namespace LCMS_ODO_GPS_GENERATOR
                 Directory.CreateDirectory(NombreDirectorioSave);
             }
 
-            NombreDirectorioSave = directorio1.Parent.FullName + "\\" + directorio.Name + "_odo_gps\\" + auxFecha;
+            //NombreDirectorioSave = rutaCarpeta + "\\" + directorio.Name + "_odo_gps\\" + auxFecha;
+            //NombreDirectorioSave = rutaCarpeta + "\\" + nomCarpeta + "_odo_gps\\" + auxFecha;
+            NombreDirectorioSave = rutaDestino + "\\" + nomCarpeta + "_odo_gps\\" + auxFecha;
+            //NombreDirectorioSave = rutaDestino;
 
             return NombreDirectorioSave;
         }
