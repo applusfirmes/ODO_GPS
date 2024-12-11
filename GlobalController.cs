@@ -11,6 +11,7 @@ namespace LCMS_ODO_GPS_GENERATOR
     {
         public static List<CarpetaConf> listaCarpetaConfActualizada = new List<CarpetaConf>();
         public static List<string> ListInfoWarnings = new List<string>();
+        public static string TextoErrores="";
 
     }
 }

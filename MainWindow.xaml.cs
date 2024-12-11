@@ -47,6 +47,13 @@ namespace LCMS_ODO_GPS_GENERATOR
     // - Creamos nuevo textbox tbMensajesError en MainWindow.xml, donde almacenaremos los errores que arroje el bucle de la función "procesarArchivos"
     //   para ello hemos añadido un try catch al bucle
 
+    // 11/12/2024 - Compilamos nueva versión, VERSION 1.0.6
+    // - En el boton "Roughness", NO reiniciabamos la variables de listaerdright ni listaerdleft, lo que provocaba que los datos de un fichero siempre se escribian en el siguiente.
+    // -Tambien añadimos check para decidir si queremos generar archivos PRO o no.
+    // -Cambiamos nodo de recogida para la fecha en ficheros .XML, antes <DateAndTime> ahora <SystemTimeAndDate>
+    // - Al encontrar un archivo corrupto en el proceso de "Roughness", NO salta messagebox, ya que eso para el proceso, ahora mostramos el log en la interfaz sin bloquear el proceso.
+    //   para ello hemos añadido un try catch al bucle
+
     /// <summary>
     /// Lógica de interacción para MainWindow.xaml
     /// </summary>
@@ -61,7 +68,7 @@ namespace LCMS_ODO_GPS_GENERATOR
         List<string> List_odoFinal;
         List<DatosGPS> List_DatosGPS;
         XmlDocument xmldoc;
-        public static string VERSION = "1.0.5"; //Cambio de versión el dia 02/12/2024
+        public static string VERSION = "1.0.6"; //Cambio de versión el dia 11/12/2024
         XmlElement xGPSCoorValido;   // Ultima Etiqueta GPSCoordinate del XML valida, que pertenece al nodo GPSInformation
         string nombreArchivoValido;
         List<CarpetaConf> listaCarpetasConf = new List<CarpetaConf>();
@@ -77,6 +84,11 @@ namespace LCMS_ODO_GPS_GENERATOR
 
         private void Btn_Procesar_Click(object sender, RoutedEventArgs e)
         {
+            //LIMPIAMOS LISTA DE ERRORES
+            GlobalController.ListInfoWarnings.Clear();
+            GlobalController.TextoErrores = "";
+            tbMensajesError.Text = "";
+
             // Para seleccionar carpeta
             //WForm.FolderBrowserDialog folderBrowserDialog = new WForm.FolderBrowserDialog();
             //folderBrowserDialog.Description = "Selecciona la ruta de los ficheros XML.";
@@ -224,6 +236,11 @@ namespace LCMS_ODO_GPS_GENERATOR
 
         private void Btn_GenerarKML_Incidencias_Click(object sender, RoutedEventArgs e)
         {
+            //LIMPIAMOS LISTA DE ERRORES
+            GlobalController.ListInfoWarnings.Clear();
+            GlobalController.TextoErrores = "";
+            tbMensajesError.Text = "";
+
             KmlController kmlController = new KmlController();
             IncidenciaController incidenciaController = new IncidenciaController();
 
@@ -260,11 +277,23 @@ namespace LCMS_ODO_GPS_GENERATOR
             }
         }
 
+        bool generarFicheroPro =false;
+
+        private void Checked_GenerarPro(object sender, RoutedEventArgs e)
+        {
+            generarFicheroPro = true;
+        }
+
+        private void Unchecked_GenerarPro(object sender, RoutedEventArgs e)
+        {
+            generarFicheroPro = false;
+        }
 
         private void Btn_Roughness_Click(object sender, RoutedEventArgs e)
         {
             GlobalController.ListInfoWarnings.Clear();
-
+            GlobalController.TextoErrores = "";
+            tbMensajesError.Text = "";
             OpenFileDialog openFileDialog = new OpenFileDialog();
             openFileDialog.Title = "Selecciona la ruta de los ficheros XML.";
             Roughness roughness = new Roughness();
@@ -290,7 +319,7 @@ namespace LCMS_ODO_GPS_GENERATOR
                             Btn_Roughness.IsEnabled = false;
                             ProgressBarSm.Visibility = Visibility.Visible;
 
-                            roughness.procesarCarpetasConfiguradas(carpeta, ventana.listaCarpetasConf);
+                            roughness.procesarCarpetasConfiguradas(carpeta, ventana.listaCarpetasConf, generarFicheroPro);
 
                             Btn_Roughness.IsEnabled = true;
                             ProgressBarSm.Visibility = Visibility.Hidden;
@@ -299,7 +328,12 @@ namespace LCMS_ODO_GPS_GENERATOR
 
                             //VentanaInfo ventanaInfo = new VentanaInfo();
                             //ventanaInfo.ShowDialog();
+                            this.Dispatcher.Invoke(() =>
+                            {
+                                tbMensajesError.Text = GlobalController.TextoErrores;
 
+                            });
+                            
                             MessageBox.Show("Operación realizada correctamente.", "Finalizado");
 
                         }

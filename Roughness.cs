@@ -36,16 +36,16 @@ namespace LCMS_ODO_GPS_GENERATOR
         public List<String> listaFechas = new List<String>(); //Guardamos todas las fechas de los XML para hacer calculos que tendremos que escribir al generar archivo gpsimp (colum Time)
 
         public double valorASumar;
-
+        public bool generarFicheroPro;
 
         private string fecha = "";
 
-        public void procesarCarpetasConfiguradas(string ruta, List<CarpetaConf> lista)
+        public void procesarCarpetasConfiguradas(string ruta, List<CarpetaConf> lista, bool generarFicheroPro)
         {
             //Creamos carpeta donde almacenaremos todos los archivos Iri que generemos
             DirectoryInfo dir = new DirectoryInfo(ruta + "\\Archivos");
             dir.Create();
-
+            this.generarFicheroPro = generarFicheroPro;
             //Recorremos todas las carpetas del GRID, que estan en la variable 'lista'
             foreach (CarpetaConf carp in lista)
             {
@@ -139,28 +139,29 @@ namespace LCMS_ODO_GPS_GENERATOR
                 generarArchivoGpsimp(rutaDestinoCarpetaArchivos, nombreCarpeta);
             }
 
-
-
-            //Después de generar los archivos IRI, EVT y GPSIMP, procesaremos los archivos .erd
-            string[] archivosErd = Directory.GetFiles(carpConf.rutaCarpeta, "*.erd", SearchOption.TopDirectoryOnly);
-
-            if (archivosErd.Length > 0)
+            //SOLO GENERAREMOS LOS ARCHIVOS PRO SI EL CHECK ESTA MARCADO
+            if (this.generarFicheroPro)
             {
-                foreach (string archivoErd in archivosErd)
+                string[] archivosErd = Directory.GetFiles(carpConf.rutaCarpeta, "*.erd", SearchOption.TopDirectoryOnly);
+
+                if (archivosErd.Length > 0)
                 {
-                    //hola/hg_L.erd
-                    bool esLeft;
-                    string ultimCaracter = archivoErd.Substring(archivoErd.Length - 5, 1);
-                    if (ultimCaracter == "L")
-                        esLeft = true;
-                    else //Es Right
-                        esLeft = false;
+                    foreach (string archivoErd in archivosErd)
+                    {
+                        //hola/hg_L.erd
+                        bool esLeft;
+                        string ultimCaracter = archivoErd.Substring(archivoErd.Length - 5, 1);
+                        if (ultimCaracter == "L")
+                            esLeft = true;
+                        else //Es Right
+                            esLeft = false;
 
-                    leerDatosErd(archivoErd, esLeft);
+                        leerDatosErd(archivoErd, esLeft);
+                    }
+
+                    generarArchivoPro(rutaDestinoCarpetaArchivos, nombreCarpeta);
+
                 }
-
-                generarArchivoPro(rutaDestinoCarpetaArchivos, nombreCarpeta);
-
             }
         }
 
@@ -220,8 +221,8 @@ namespace LCMS_ODO_GPS_GENERATOR
                             listaIncidencias.Add(inc);
                         }
 
-                        // Detectar el inicio del nodo <DateAndTime>
-                        if (reader.NodeType == XmlNodeType.Element && reader.Name == "DateAndTime")
+                        // Detectar el inicio del nodo <SystemTimeAndDate>
+                        if (reader.NodeType == XmlNodeType.Element && reader.Name == "SystemTimeAndDate")
                         {
                             fecha = reader.ReadElementContentAsString();
 
@@ -271,7 +272,9 @@ namespace LCMS_ODO_GPS_GENERATOR
             }
             catch (Exception e)
             {
-                MessageBox.Show("Error de lectura en el fichero " + archivoXML + " " + e.Message);
+                GlobalController.TextoErrores += "Error de lectura en el fichero " + archivoXML + " - " + e.Message + Environment.NewLine;
+
+                //MessageBox.Show("Error de lectura en el fichero " + archivoXML + " " + e.Message);
             }
         }
 
@@ -606,6 +609,10 @@ namespace LCMS_ODO_GPS_GENERATOR
             listaLongitud.Clear();
             listaLatitud.Clear();
             listaFechas.Clear();
+
+            //Para ficheros .erd .pro, modificacion el 11/12/2024
+            listaValoresErdRight.Clear();
+            listaValoresErdLeft.Clear();
             fecha = string.Empty;
         }
 
